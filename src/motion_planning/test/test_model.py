@@ -1,9 +1,8 @@
 import numpy as np
-import five_bar_robot as fb
 import pytest
 import sys
 sys.path.append('../motion_planning')
-
+import five_bar_robot as fb
 
 @pytest.fixture
 def five():
