@@ -13,65 +13,105 @@ import matplotlib.pyplot as plt
 
 
 class Arm(object):
+    """ This class contain the representation o a 2 dof plannar robotic arm
 
-    """Docstring for Arm. """
+    Attributes:
+        d_ (np.ndarray): 2X1 proximal and distal link length.
+        wkMode_ (int): Current working mode of the arm.
+        base_ (double): distance form the origin to the base of the arm.
+        rOA (np.ndarray): 2x1 point in task space that represent the union
+        between the proximal and distal links.
+
+    """
 
     def __init__(self, d: np.ndarray, wkMode: int):
-        """TODO: to be defined. """
-        self.d_ = d[1:]
+        """__init_ method:
+
+        Arg:
+            d (np.ndarray): 3X1 d column of MDH matrix
+            wkMode (int): Current working mode of the arm.
+
+        """
+        self.d_ = d[1:]  # proximal and distal links
         self.wkMode_ = wkMode  # +1 -1
         self.base_ = np.array([d[0], 0.0], dtype=float)
-        self.rOA = np.array([0, 0])
+        self.rOA = np.array([0.0, 0.0], dtype=float)
 
 
 class FiveBar(object):
+    """ This class implement a model of a five bars robot also know as
+    scara parallel robot. Units are in meters [m] and radians [rad].
 
-    """Docstring for FiveBar. """
+    Atributtes:
+        arms (list(Arm)): 2X1 list that cointain the 2 dof arms.
+        endEff (np.ndarray): 3X1 vector that represent the
+            end effector pose [x,y,z].
+        assMode (int): Current assembly mode.
+        q (np.ndarray): joints position in radians
+
+    """
 
     def __init__(self, d1: np.ndarray, d2: np.ndarray):
-        """TODO: to be defined. """
+        """__init_ method:
 
-        self.arms = [Arm(d1, 1), Arm(d2, 1)]
-        # End Effector co0rdinates
-        self.endEff = np.array([0.0, 0.0], dtype=float)
-        self.assMode = 1  # +1 o -1
-        self.q = np.array([0.0, 0.0], dtype=float)
-
-    def ikine(self):
-        """TODO: Docstring for ikine.
-
-        :arg1: TODO
-        :returns: TODO
+        Arg:
+            d1 (np.ndarray): 3X1 d column of MDH matrix
+            d2 (np.ndarray): 3X1 d column of MDH matrix
 
         """
+        self.arms = [Arm(d1, 1), Arm(d2, 1)]
+        # End Effector co0rdinates
+        self.endEff = np.array([0.0, 0.0, 0.0], dtype=float)
+        self.assMode = 1  # +1 o -1
+        self.q = np.array([0.0, 0.0, 0.0], dtype=float)
+
+    def ikine(self, *args) -> np.ndarray:
+        """ Inverse kinematics
+
+        args: TODO
+        returns: TODO
+
+        """
+        if len(args) == 1:
+            p = args[0][:2]  # EndEff x-y
+            # z axis is equal to q[2]
+            self.q[2] = args[0][-1]
+        else:
+            p = self.endEff[:2]
+            # z axis is equal to q[2]
+            self.q[2] = self.endEff[-1]
+
         for i, arm in enumerate(self.arms):
-            phi = np.linalg.norm(-self.endEff+arm.base_)
+            phi = np.linalg.norm(-p+arm.base_)
             if phi <= arm.d_.sum():  # si es = esta en una singularidad serie
-                f = (self.endEff - arm.base_) / 2
+                f = (p - arm.base_) / 2
                 h = np.sqrt(4 * arm.d_[0]**2 - phi**2) * \
                     np.array([f[1], -f[0]]) / phi
 
                 r = f + arm.wkMode_ * h
+
+                # Update robot
                 self.q[i] = np.arctan2(r[1], r[0])
             else:
                 # TODO:Implementar alguna forma para que no se bloquee.
                 print('Point outside of workspace')
         return self.q
 
-    def fkine(self):
-        """TODO: Docstring for fkine.
+    def fkine(self, *args) -> np.ndarray:
+        """ Forward kinematics
 
-        :q: current joint position
-        :ass: Assembly mode
-        :returns: TODO
+        Arg: TODO
+
         """
+        if len(args) == 1:
+            q = args[0]
+        else:
+            q = self.q
 
-        self.arms[0].rOA = self.arms[0].base_ + self.arms[0].d_[0] * \
-            np.array([np.cos(self.q[0]), np.sin(self.q[0])])
-        rOA1 = self.arms[0].rOA
-        self.arms[1].rOA = self.arms[1].base_ + self.arms[1].d_[0] * \
-            np.array([np.cos(self.q[1]), np.sin(self.q[1])])
-        rOA2 = self.arms[1].rOA
+        rOA1 = self.arms[0].base_ + self.arms[0].d_[0] * \
+            np.array([np.cos(q[0]), np.sin(q[0])])
+        rOA2 = self.arms[1].base_ + self.arms[1].d_[0] * \
+            np.array([np.cos(q[1]), np.sin(q[1])])
 
         phi = np.linalg.norm(rOA1 - rOA2)
 
@@ -80,20 +120,22 @@ class FiveBar(object):
             h = np.sqrt(4 * self.arms[0].d_[0]**2 - phi**2) * \
                 np.array([-f[1], f[0]]) / phi
 
-            p = rOA1 + f + self.assMode * h
-            # Verifico que este en el ensamble correcto
+            # In working mode +- we have to change the assembly mode
             if (self.arms[0].wkMode_ == 1 and
                     self.arms[1].wkMode_ == -1):
                 p = rOA1 + f - self.assMode * h
-            # elif (self.arms[0].wkMode_ == -1 and
-            #         self.arms[1].wkMode_ == 1 and self.assMode == -1):
-            #     p = rOA1 + f  + self.assMode * h
+            else:
+                p = rOA1 + f + self.assMode * h
 
+            p = np.append(p, q[-1])
+            # Update robot
             self.endEff = p
+            self.arms[0].rOA = rOA1
+            self.arms[1].rOA = rOA2
             return p
         else:
             print('Imposible to solve inverse kinematic')
-            return NaN
+            return np.NaN
 
     def showRobot(self):
         """TODO: Docstring for showRobot.
@@ -129,7 +171,7 @@ class FiveBar(object):
 
 
 def main():
-    l = 0.205
+    l = 0.205  # noqa
     b = 0.125
     five = FiveBar(np.array([-b, l, l]), np.array([b, l, l]))
     five.endEff = np.array([0.0, 0.3])
