@@ -24,7 +24,7 @@ class Arm(object):
 
     """
 
-    def __init__(self, d: np.ndarray, wkMode: int):
+    def __init__(self, d: np.ndarray, wkMode: int) -> None:
         """__init_ method:
 
         Arg:
@@ -51,7 +51,7 @@ class FiveBar(object):
 
     """
 
-    def __init__(self, d1: np.ndarray, d2: np.ndarray):
+    def __init__(self, d1: np.ndarray, d2: np.ndarray) -> None:
         """__init_ method:
 
         Arg:
@@ -68,8 +68,12 @@ class FiveBar(object):
     def ikine(self, *args) -> np.ndarray:
         """ Inverse kinematics
 
-        args: TODO
-        returns: TODO
+        Arg:
+            p (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
+
+        Retrun:
+            q (np.ndarray): 3X1 vector. Joint position for achive dessire pose
+                [q1, q2, d3]
 
         """
         if len(args) == 1:
@@ -100,7 +104,12 @@ class FiveBar(object):
     def fkine(self, *args) -> np.ndarray:
         """ Forward kinematics
 
-        Arg: TODO
+        Arg:
+            q (np.ndarray): 3X1 vector. Joint position for achive dessire pose
+                [q1, q2, d3]
+
+        Retrun:
+            p (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
 
         """
         if len(args) == 1:
@@ -138,8 +147,7 @@ class FiveBar(object):
             return np.NaN
 
     def showRobot(self):
-        """TODO: Docstring for showRobot.
-        :returns: TODO
+        """ Show robot with numpy
 
         """
         # Link 11
