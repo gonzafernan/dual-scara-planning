@@ -7,7 +7,6 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=10000]
-      - id: double-quote-string-fixer
       - id: mixed-line-ending
         args: [--fix=lf]
       - id: check-ast
