@@ -2,3 +2,5 @@ __pycache__/
 .vscode/
 #conda environment
 envs/ 
+# pytest
+.pytest_cache
