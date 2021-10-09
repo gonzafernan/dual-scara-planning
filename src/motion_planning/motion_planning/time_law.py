@@ -136,3 +136,73 @@ class TimeLaw(object):
         elif t > T+tau:
             sdd = 0
         return sdd
+
+    def quintic_poly_coeff(self, qi, qf, vi=0, vf=0, ai=0, af=0) -> np.ndarray:
+        """ Quintic polynomial coefficient
+        A quintic (5th order) polynomial is used with default zero boundary
+        conditions for velocity and acceleration.
+        Time is assumed to vary from 0 to 1.
+
+        s(t) = a5 * t^5 + a4 * t^4 + a3 * t^4 + a2 * t^2 + a1 * t + a0
+
+        Args:
+        qi (float): initial pose
+        qf (float): final pose
+        vi (float, optional): initial velocity. Default to 0
+        vf (float, optional): final velocity. Default to 0
+        ai (float, optional): initial acceleration. Default to 0
+        af (float, optional): final acceleration. Default to 0
+
+
+        Returns:
+        a (np.ndarray): list with coefficients [a0, a1, a2, a3, a4, a5]
+        """
+        T = 1.0
+
+        M = np.matrix([[1.0, 0, 0, 0, 0, 0],
+                       [0, 1.0, 0, 0, 0, 0],
+                       [0, 0, 2.0, 0, 0, 0],
+                       [1.0, T, T**2, T**3, T**4, T**5],
+                       [0, 1.0, 2*T, 3*T**2, 4*T**3, 5*T**4],
+                       [0, 0, 2.0, 6*T, 12*T**2, 20*T**3]])
+
+        b = np.array([[qi], [vi], [ai], [qf], [vf], [af]])
+
+        a = np.linalg.inv(M) @ b
+
+        return a
+
+    def quintic_poly_fun(self, t, a) -> tuple:
+        """ Quintic polynomial coefficient
+        A quintic (5th order) polynomial is used with default zero boundary
+        conditions for velocity and acceleration.
+        Time is assumed to vary from 0 to 1.
+
+        s(t) = a5 * t^5 + a4 * t^4 + a3 * t^4 + a2 * t^2 + a1 * t + a0
+        sd(t) = 5 * a5 * t^4 + 4 * a4 * t^3 + 3 * a3 * t^2 + 2 * a2 * t^1 + a1
+        sdd(t) = 20 * a5 * t^3 + 12 * a4 * t^2 + 6 * a3 * t + 2 * a2
+
+        Args:
+        t (float): current time
+        a (np.ndarray): coefficients
+
+
+        Returns:
+        s (float): s(t) value
+        sd (float): sd(t) value
+        sdd (float): sdd(t) value
+        """
+        T = np.array([1.0, t, t**2, t**3, t**4, t**5])
+        Td = [0, 1.0, 2*t, 3*t**2, 4*t**3, 5*t**4]
+        Tdd = [0, 0, 2.0, 6*t, 12*t**2, 20*t**3]
+        s = T * a
+        sd = Td * a
+        sdd = Tdd * a
+        return s, sd, sdd
+
+
+if __name__ == '__main__':
+    tl = TimeLaw()
+    a = tl.quintic_poly_coeff(
+        qi=0.0, qf=1.0, vi=0.0, vf=0.0, ai=0.0, af=0.0)
+    print(a)
