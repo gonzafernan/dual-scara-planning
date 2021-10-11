@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 class TimeLaw(object):
@@ -9,8 +10,14 @@ class TimeLaw(object):
     def __init__(self) -> None:
         pass
 
-    def trapezoidal_param(self, *args, **kwargs) -> tuple:
-        """ Trapezoidal timing law parameters
+    def lspb_param(self, *args, **kwargs) -> tuple:
+        """ Trapezoidal timing law parameters or
+            Linear segment with parabolic blend
+        Note: If a trapezoidal timing law can not be reached,
+            with the parameters, this function keep doing a
+            trapezoidal timing law. This aproche is achive by
+            choosing tau = sqrt(delta_q/max_a) tringular law
+            and T = max_v / max_a. This keep a trapezoidal law
 
         Args:
         delta_q (float): total displacement.
@@ -60,8 +67,10 @@ class TimeLaw(object):
             tau = K * dt
         return tau, T
 
-    def trapezoidal_s(self, t: float, tau: float, T: float) -> float:
-        """ Trapezoidal time law
+    def lspb_s(self, t: float, tau: float, T: float) -> float:
+        """ Trapezoidal time law or
+            Linear segment with parabolic blend.
+            Range from [0, 1]
 
         Args:
         t (float): current time
@@ -75,8 +84,8 @@ class TimeLaw(object):
         v = 1 / T
         if t <= 0:
             s = 0
-        elif t <= tau:
-            s = a * tau**2 / 2
+        elif t > 0 and t <= tau:
+            s = a * t**2 / 2
         elif t > tau and t <= T:
             s_tau = a * tau**2 / 2
             s = s_tau + v * (t-tau)
@@ -88,8 +97,28 @@ class TimeLaw(object):
             s = 1
         return s
 
-    def trapezoidal_sd(self, t: float, tau: float, T: float) -> float:
-        """ Derivate trapezoidal time law
+    def lspb(self, t: float, tau: float, T: float) -> tuple:
+        """ Trapezoidal time law or
+            Linear segment with parabolic blend
+
+        Args:
+        t (float): current time
+        T (float): deceleration time
+        tau (float): acceleration time
+
+        Retruns:
+        float: sd(t) value.
+        float: sdd(t) value.
+        float: sddd(t) value.
+        """
+        s = self.lspb_s(t, tau, T)
+        sd = self.lspb_sd(t, tau, T)
+        sdd = self.lspb_sdd(t, tau, T)
+        return s, sd, sdd
+
+    def lspb_sd(self, t: float, tau: float, T: float) -> float:
+        """ Derivate trapezoidal time law or
+            Linear segment with parabolic blend
 
         Args:
         t (float): current time
@@ -113,8 +142,9 @@ class TimeLaw(object):
             sd = 0
         return sd
 
-    def trapezoidal_sdd(self, t: float, tau: float, T: float) -> float:
-        """ Second derivate trapezoidal time law
+    def lspb_sdd(self, t: float, tau: float, T: float) -> float:
+        """ Second derivate trapezoidal time law or
+            Linear segment with parabolic blend
 
         Args:
         t (float): current time
@@ -137,7 +167,7 @@ class TimeLaw(object):
             sdd = 0
         return sdd
 
-    def quintic_poly_coeff(self, qi, qf, vi=0, vf=0, ai=0, af=0) -> np.ndarray:
+    def poly_coeff(self, qi, qf, vi=0, vf=0, ai=0, af=0) -> np.ndarray:
         """ Quintic polynomial coefficient
         A quintic (5th order) polynomial is used with default zero boundary
         conditions for velocity and acceleration.
@@ -172,7 +202,7 @@ class TimeLaw(object):
 
         return a
 
-    def quintic_poly_fun(self, t, a) -> tuple:
+    def poly(self, t, a) -> tuple:
         """ Quintic polynomial coefficient
         A quintic (5th order) polynomial is used with default zero boundary
         conditions for velocity and acceleration.
@@ -193,8 +223,8 @@ class TimeLaw(object):
         sdd (float): sdd(t) value
         """
         T = np.array([1.0, t, t**2, t**3, t**4, t**5])
-        Td = [0, 1.0, 2*t, 3*t**2, 4*t**3, 5*t**4]
-        Tdd = [0, 0, 2.0, 6*t, 12*t**2, 20*t**3]
+        Td = np.array([0, 1.0, 2*t, 3*t**2, 4*t**3, 5*t**4])
+        Tdd = np.array([0, 0, 2.0, 6*t, 12*t**2, 20*t**3])
         s = T * a
         sd = Td * a
         sdd = Tdd * a
@@ -203,6 +233,31 @@ class TimeLaw(object):
 
 if __name__ == '__main__':
     tl = TimeLaw()
-    a = tl.quintic_poly_coeff(
-        qi=0.0, qf=1.0, vi=0.0, vf=0.0, ai=0.0, af=0.0)
-    print(a)
+    a = tl.poly_coeff(qi=0.0, qf=1.0, vi=0.0, vf=0.0, ai=0.0, af=0.0)
+    dt = 0.001
+    n = int(1/dt)
+    s = np.zeros(n)
+    sd = np.zeros(n)
+    sdd = np.zeros(n)
+    for i, t in enumerate(np.arange(start=0, stop=1, step=dt)):
+        s[i], sd[i], sdd[i] = tl.poly(t, a)
+    tau, T = tl.lspb_param(delta_q=1, max_v=2.5, max_a=10)
+    n = int((tau+T+dt)/dt) + 1
+    st = np.zeros(n)
+    std = np.zeros(n)
+    stdd = np.zeros(n)
+    for i, t in enumerate(np.arange(start=0, stop=dt+tau+T, step=dt)):
+        st[i], std[i], stdd[i] = tl.lspb(t=t, tau=tau, T=T)
+    plt.figure(1)
+    plt.plot(s)
+    plt.plot(sd)
+    plt.plot(sdd)
+    plt.grid(True)
+    plt.title("Polynomic time law")
+    plt.figure(2)
+    plt.plot(st)
+    plt.plot(std)
+    plt.plot(stdd)
+    plt.title("LSPB")
+    plt.grid(True)
+    plt.show()
