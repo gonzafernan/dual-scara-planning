@@ -89,11 +89,11 @@ class TimeLaw(object):
         elif t > tau and t <= T:
             s_tau = a * tau**2 / 2
             s = s_tau + v * (t - tau)
-        elif t > T and t <= T + tau:
+        elif t > T and t < T + tau:
             s_tau = a * tau**2 / 2
             s_T = s_tau + v * (T - tau)
             s = s_T + v * (t - T) - a * (t - T)**2 / 2
-        elif t > T + tau:
+        elif t >= T + tau:
             s = 1
         return s
 
@@ -117,9 +117,9 @@ class TimeLaw(object):
             sd = a * t
         elif t > tau and t <= T:
             sd = v
-        elif t > T and t <= T + tau:
+        elif t > T and t < T + tau:
             sd = v - a * (t - T)
-        elif t > T + tau:
+        elif t >= T + tau:
             sd = 0
         return sd
 
@@ -142,9 +142,9 @@ class TimeLaw(object):
             sdd = a
         elif t > tau and t <= T:
             sdd = 0
-        elif t > T and t <= T + tau:
+        elif t > T and t < T + tau:
             sdd = -a
-        elif t > T + tau:
+        elif t >= T + tau:
             sdd = 0
         return sdd
 

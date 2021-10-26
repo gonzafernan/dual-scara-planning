@@ -40,6 +40,12 @@ def test_s(data):
     s = law.lspb_s(t=tau_, tau=tau_, T=T_)
     s_ = (data["max_a"] * tau_**2 * 0.5) / data["delta_q"]
     assert np.round(s, decimals=4) == np.round(s_, decimals=4)
+    s = law.lspb_s(t=T_ + tau_, tau=tau_, T=T_)
+    s_ = 1.0
+    assert s == s_
+    s = law.lspb_s(t=0.0, tau=tau_, T=T_)
+    s_ = 0.0
+    assert s == s_
 
 
 def test_sd(data):
