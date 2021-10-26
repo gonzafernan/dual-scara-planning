@@ -3,7 +3,7 @@ import pytest
 import sys
 sys.path.append('/home/jere/Documentos/five-bar-robot/src/'
         + 'motion_planning/motion_planning')  # noqa
-import time_law as tl  # noqa
+import timelaw as tl  # noqa
 
 
 @pytest.fixture
@@ -82,6 +82,11 @@ def test_polynomic_law(data):
     coeff = np.matrix([[0.], [0.], [0.], [10.], [-15.], [6.]])
     for i, v in enumerate(a):
         assert np.round(v) == np.round(coeff[i])
+
+    s, sd_current, sdd = law.poly(0, a)
+    assert s == 0
+    s, sd_current, sdd = law.poly(1, a)
+    assert s <= 1.
     # Test for velocity
     sd = 0
     for t in np.arange(start=0, stop=1, step=data["dt"]):
