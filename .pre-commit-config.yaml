@@ -16,7 +16,7 @@ repos:
     rev: 'v0.31.0'  # Use the sha / tag you want to point at
     hooks:
       - id: yapf
-        args: ['--style={"based_on_style": "google"}']
+        args: ['--style={based_on_style: google}']
   - repo: https://github.com/pycqa/flake8
     rev: "3.9.2" # pick a git hash / tag to point to
     hooks:
