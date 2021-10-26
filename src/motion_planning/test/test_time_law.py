@@ -1,8 +1,9 @@
 import numpy as np
 import pytest
 import sys
-sys.path.append('/home/jere/Documentos/five-bar-robot/src/'
-        + 'motion_planning/motion_planning')  # noqa
+
+sys.path.append('/home/jere/Documentos/five-bar-robot/src/' +
+                'motion_planning/motion_planning')  # noqa
 import timelaw as tl  # noqa
 
 
@@ -23,7 +24,8 @@ def test_parameters(data):
     tau_ = data["dt"] * np.ceil(tau_ / data["dt"])
     T_ = data["dt"] * np.ceil(T_ / data["dt"])
     law = tl.TimeLaw()
-    tau, T = law.lspb_param(delta_q=data["delta_q"], max_v=data["max_v"],
+    tau, T = law.lspb_param(delta_q=data["delta_q"],
+                            max_v=data["max_v"],
                             max_a=data["max_a"])
     assert tau == tau_ and T == T_
 
@@ -49,13 +51,12 @@ def test_sd(data):
     law = tl.TimeLaw()
     sd = 0.0
     # Integrating
-    for t in np.arange(start=0, stop=T_+tau_+data["dt"], step=data["dt"]):
+    for t in np.arange(start=0, stop=T_ + tau_ + data["dt"], step=data["dt"]):
         sd = sd + law.lspb_sd(t=t, tau=tau_, T=T_)
     sd = sd * data["dt"]
     assert np.round(sd, decimals=4) == 1.0
-    maxv = law.lspb_sd(t=tau_+data["dt"], tau=tau_, T=T_)
-    assert np.round(maxv, decimals=4) == np.round(
-        1.0 / T_, decimals=4)
+    maxv = law.lspb_sd(t=tau_ + data["dt"], tau=tau_, T=T_)
+    assert np.round(maxv, decimals=4) == np.round(1.0 / T_, decimals=4)
 
 
 def test_sdd(data):
@@ -67,13 +68,12 @@ def test_sdd(data):
     law = tl.TimeLaw()
     sdd = 0.0
     # Integrating
-    for t in np.arange(start=0, stop=tau_+data["dt"], step=data["dt"]):
+    for t in np.arange(start=0, stop=tau_ + data["dt"], step=data["dt"]):
         sdd = sdd + law.lspb_sdd(t=t, tau=tau_, T=T_)
     sdd = sdd * data["dt"]
-    assert np.round(sdd, decimals=4) == np.round(1.0/T_, decimals=4)
-    maxa = law.lspb_sdd(t=tau_-data["dt"], tau=tau_, T=T_)
-    assert np.round(maxa, decimals=4) == np.round(
-        1.0 / (tau_ * T_), decimals=4)
+    assert np.round(sdd, decimals=4) == np.round(1.0 / T_, decimals=4)
+    maxa = law.lspb_sdd(t=tau_ - data["dt"], tau=tau_, T=T_)
+    assert np.round(maxa, decimals=4) == np.round(1.0 / (tau_ * T_), decimals=4)
 
 
 def test_polynomic_law(data):

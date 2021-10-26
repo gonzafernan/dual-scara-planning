@@ -196,8 +196,7 @@ class TimeLaw(object):
         a (np.ndarray): list with coefficients [a0, a1, a2, a3, a4, a5]
         """
 
-        M = np.matrix([[1.0, 0, 0, 0, 0, 0],
-                       [0, 1.0, 0, 0, 0, 0],
+        M = np.matrix([[1.0, 0, 0, 0, 0, 0], [0, 1.0, 0, 0, 0, 0],
                        [0, 0, 2.0, 0, 0, 0],
                        [1.0, tf, tf**2, tf**3, tf**4, tf**5],
                        [0, 1.0, 2 * tf, 3 * tf**2, 4 * tf**3, 5 * tf**4],

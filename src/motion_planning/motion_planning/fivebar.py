@@ -86,7 +86,7 @@ class FiveBar(object):
             self.joints[2] = self.endPose[-1]
 
         for i, arm in enumerate(self.arms):
-            phi = np.linalg.norm(-p+arm.base)
+            phi = np.linalg.norm(-p + arm.base)
             if phi <= arm.links.sum():  # if equal is in serie singularity
                 f = (p - arm.base) / 2
                 h = np.sqrt(4 * arm.links[0]**2 - phi**2) * \
@@ -130,8 +130,7 @@ class FiveBar(object):
                 np.array([-f[1], f[0]]) / phi
 
             # In working mode +- we have to change the assembly mode
-            if (self.arms[0].working == 1 and
-                    self.arms[1].working == -1):
+            if (self.arms[0].working == 1 and self.arms[1].working == -1):
                 p = rOA1 + f - self.assembly * h
             else:
                 p = rOA1 + f + self.assembly * h
@@ -173,7 +172,7 @@ class FiveBar(object):
         plt.plot(l21_x, l21_y, color='b', linewidth=3.0)
         plt.plot(l22_x, l22_y, color='b', linewidth=3.0)
 
-        plt.axis(0.4*np.array([-1, 1, -1, 1]))
+        plt.axis(0.4 * np.array([-1, 1, -1, 1]))
         plt.grid(True)
         plt.show()
 
