@@ -85,7 +85,7 @@ def test_sdd(data):
 def test_polynomic_law(data):
     law = tl.TimeLaw()
     a = law.poly_coeff(qi=0.0, qf=1.0, vi=0.0, vf=0.0, ai=0.0, af=0.0)
-    coeff = np.matrix([[0.], [0.], [0.], [10.], [-15.], [6.]])
+    coeff = np.array([[0.], [0.], [0.], [10.], [-15.], [6.]])
     for i, v in enumerate(a):
         assert np.round(v) == np.round(coeff[i])
 

@@ -19,8 +19,9 @@ def five():
 
 def test_inverse(five):
     # ++
-    assert five.ikine() == pytest.approx(np.array([0.52040625, 1.30998849,
-                                                   0.0]))
+    value = np.array([0.52040625, 1.30998849, 0.0])
+    for i, q in enumerate(five.ikine()):
+        assert np.round(q, decimals=5) == np.round(value[i], decimals=5)
     # -+
     five.arms[0].working = -1
     assert five.ikine() == pytest.approx(np.array([1.83160416, 1.30998849,
@@ -59,9 +60,9 @@ def test_forward_ass_2(five):
     # -+
     five.assembly = -1
     five.arms[0].working = -1
-    five.joints = np.array([1.83160416, 1.30998849, 0.0])
+    joints = np.array([1.83160416, 1.30998849, 0.0])
     assert AssertionError != np.testing.assert_allclose(
-        five.fkine(),
+        five.fkine(joints),
         np.array([-1.98021962e-17, 9.61346135e-02, 0.0]),
         rtol=1e-5,
         atol=1e-5)

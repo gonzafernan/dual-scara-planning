@@ -6,7 +6,6 @@ class TimeLaw(object):
     """" Class that implement time laws
 
     """
-
     def __init__(self) -> None:
         pass
 
@@ -196,19 +195,19 @@ class TimeLaw(object):
         a (np.ndarray): list with coefficients [a0, a1, a2, a3, a4, a5]
         """
 
-        M = np.matrix([[1.0, 0, 0, 0, 0, 0], [0, 1.0, 0, 0, 0, 0],
-                       [0, 0, 2.0, 0, 0, 0],
-                       [1.0, tf, tf**2, tf**3, tf**4, tf**5],
-                       [0, 1.0, 2 * tf, 3 * tf**2, 4 * tf**3, 5 * tf**4],
-                       [0, 0, 2.0, 6 * tf, 12 * tf**2, 20 * tf**3]])
+        M = np.array([[1.0, 0, 0, 0, 0, 0], [0, 1.0, 0, 0, 0, 0],
+                      [0, 0, 2.0, 0, 0, 0],
+                      [1.0, tf, tf**2, tf**3, tf**4, tf**5],
+                      [0, 1.0, 2 * tf, 3 * tf**2, 4 * tf**3, 5 * tf**4],
+                      [0, 0, 2.0, 6 * tf, 12 * tf**2, 20 * tf**3]])
 
-        b = np.matrix([[qi], [vi], [ai], [qf], [vf], [af]])
+        b = np.array([[qi], [vi], [ai], [qf], [vf], [af]])
 
         a = np.linalg.inv(M) @ b
 
         return a
 
-    def poly(self, t: float, a: np.matrix) -> tuple[float, np.matrix]:
+    def poly(self, t: float, a: np.array) -> tuple[float, np.array]:
         """ Quintic polynomial coefficient
         A quintic (5th order) polynomial is used with default zero boundary
         conditions for velocity and acceleration.
@@ -219,7 +218,7 @@ class TimeLaw(object):
 
         Args:
         t (float): current time
-        a (np.matrix): coefficients
+        a (np.array): coefficients
 
 
         Returns:
@@ -227,13 +226,13 @@ class TimeLaw(object):
         sd (float): sd(t) value
         sdd (float): sdd(t) value
         """
-        T = np.matrix([1.0, t, t**2, t**3, t**4, t**5])
-        Td = np.matrix([0, 1.0, 2 * t, 3 * t**2, 4 * t**3, 5 * t**4])
-        Tdd = np.matrix([0, 0, 2.0, 6 * t, 12 * t**2, 20 * t**3])
+        T = np.array([1.0, t, t**2, t**3, t**4, t**5])
+        Td = np.array([0, 1.0, 2 * t, 3 * t**2, 4 * t**3, 5 * t**4])
+        Tdd = np.array([0, 0, 2.0, 6 * t, 12 * t**2, 20 * t**3])
         s = T @ a
         sd = Td @ a
         sdd = Tdd @ a
-        return np.asscalar(s), np.asscalar(sd), np.asscalar(sdd)
+        return s.item(), sd.item(), sdd.item()
 
 
 if __name__ == '__main__':

@@ -28,7 +28,7 @@ class Arm(object):
         """__init_ method:
 
         Arg:
-            d (np.ndarray): 3X1 d column of MDH matrix
+            d (np.ndarray): 3X1 d column of MDH array
             wkMode (int): Current working mode of the arm.
 
         """
@@ -51,12 +51,16 @@ class FiveBar(object):
 
     """
 
-    def __init__(self, d1: np.ndarray, d2: np.ndarray) -> None:
+    def __init__(
+        self,
+        d1: np.ndarray = np.array([-.125, .205, .205]),
+        d2: np.ndarray = np.array([.125, .205, .205])
+    ) -> None:
         """__init_ method:
 
         Arg:
-            d1 (np.ndarray): 3X1 d column of MDH matrix
-            d2 (np.ndarray): 3X1 d column of MDH matrix
+            d1 (np.ndarray): 3X1 d column of MDH array
+            d2 (np.ndarray): 3X1 d column of MDH array
 
         """
         self.arms = [Arm(d1, 1), Arm(d2, 1)]
@@ -65,25 +69,27 @@ class FiveBar(object):
         self.assembly = 1  # +1 o -1
         self.joints = np.array([0.0, 0.0, 0.0], dtype=float)
 
-    def ikine(self, *args) -> np.ndarray:
-        """ Inverse kinematics
+    def ikine(self, pose: np.ndarray = 0) -> np.ndarray:
+        """ Inverse kinematics. If non parameter is passed the current
+        position of the robot
 
         Arg:
-            p (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
+            pose (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
+
 
         Retrun:
             q (np.ndarray): 3X1 vector. Joint position for achive dessire pose
                 [q1, q2, d3]
 
         """
-        if len(args) == 1:
-            p = args[0][:2]  # EndEff x-y
-            # z axis is equal to q[2]
-            self.joints[2] = args[0][-1]
-        else:
+        joints = np.zeros(3)
+        if isinstance(pose, int):
             p = self.endPose[:2]
             # z axis is equal to q[2]
-            self.joints[2] = self.endPose[-1]
+            joints[-1] = self.endPose[-1].item()
+        else:
+            p = pose[:2]
+            joints[-1] = pose[-1].item()
 
         for i, arm in enumerate(self.arms):
             phi = np.linalg.norm(-p + arm.base)
@@ -95,13 +101,14 @@ class FiveBar(object):
                 r = f + arm.working * h
 
                 # Update robot
-                self.joints[i] = np.arctan2(r[1], r[0])
+                joints[i] = np.arctan2(r[1], r[0])
             else:
                 # TODO:Implementar alguna forma para que no se bloquee.
                 print('Point outside of workspace')
-        return self.joints
+        self.joints = joints
+        return joints
 
-    def fkine(self, *args) -> np.ndarray:
+    def fkine(self, joint: np.ndarray = 0) -> np.ndarray:
         """ Forward kinematics
 
         Arg:
@@ -112,10 +119,10 @@ class FiveBar(object):
             p (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
 
         """
-        if len(args) == 1:
-            q = args[0]
-        else:
+        if isinstance(joint, int):
             q = self.joints
+        else:
+            q = joint
 
         rOA1 = self.arms[0].base + self.arms[0].links[0] * \
             np.array([np.cos(q[0]), np.sin(q[0])])
