@@ -1,7 +1,20 @@
 ## Five bar robot
+
 Five-bar planar parallel robots for pick and place operations.
+## Install pre-commit
+For install [pre-commit](https://pre-commit.com/#pre-commit-configyaml---hooks)
+
+```bash
+pip install pre-commit
+```
+Then after clone this repository
+
+``` bash
+pre-commit install
+```
 ### Notes
 I suggest a project layout like:
+
 ```bash
 five-bar-robot/
     doc/
