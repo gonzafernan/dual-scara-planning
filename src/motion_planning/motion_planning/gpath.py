@@ -7,12 +7,28 @@ import matplotlib.pyplot as plt
 class Path(object):
     """Docstrings for Path"""
 
-    def __init__(self) -> None:
+    def __init__(self, robot: FiveBar = FiveBar()) -> None:
         self.tl = TimeLaw()
-        self.robot = FiveBar()  # Have to be initialized
-        self.robot.arms[0].working = -1
-        self.dt = 0.001
+        self.robot = robot
+        self.dt = 0.01
         self.tf = 0.
+
+    def right_side(self, q):
+        if abs(q) < np.pi / 2:
+            return True
+        else:
+            return False
+
+    def delta_q(self, q1, q2):
+        result = []
+        for start, goal in zip(q1[0:2], q2[0:2]):
+            if self.right_side(start) and self.right_side(goal):
+                x = goal - start
+            else:
+                x = goal % (2. * np.pi) - start % (2. * np.pi)
+            result.append(x)
+        result.append(q2[-1] - q1[-1])
+        return np.array(result)
 
     def go_to(self, goals: np.ndarray, max_v: float,
               max_a: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -43,8 +59,9 @@ class Path(object):
             tau = np.zeros(last_goal)
             T = np.zeros(last_goal)
             for i in range(0, last_goal):
-                dq[i, :] = self.robot.ikine(goals[i + 1, :]) - self.robot.ikine(
-                    goals[i, :])
+                # + counter clockwise
+                dq[i, :] = self.delta_q(self.robot.ikine(goals[i, :]),
+                                        self.robot.ikine(goals[i + 1, :]))
                 tau_, T_ = self.tl.lspb_param(np.max(abs(dq[i, :])), max_v[i],
                                               max_a[i])
                 tau[i] = tau_
@@ -52,21 +69,16 @@ class Path(object):
             self.tf = tau[-1] + T.sum()
             T2 = T[0]
         else:
-            dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
+            dq = self.delta_q(self.robot.ikine(goals[0, :]),
+                              self.robot.ikine(goals[1, :]))
             tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
             self.tf = tau + T
-        # jstart = self.robot.ikine(goal)
-        # jgoal = self.robot.ikine(goal)
-        # dq = jgoal - jstart
-        # tau, T = self.tl.lspb_param(np.max(abs(dq)), max_v, max_a)
-        # self.tf = tau + T
-        n = int(self.tf / self.dt) + 1
+        n = round(self.tf / self.dt) + 1
         p = np.zeros((n, 3))
         q = np.zeros((n, 3))
         qd = np.zeros((n, 3))
         qdd = np.zeros((n, 3))
-        for i, t in enumerate(
-                np.arange(start=0, stop=self.tf + self.dt, step=self.dt)):
+        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             if goals.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
                 q[i, :] = self.robot.ikine(goals[0, :]) + dq * s
@@ -109,20 +121,20 @@ class Path(object):
         """
         jstart = self.robot.ikine(start)
         jgoal = self.robot.ikine(goal)
+        dq = self.delta_q(jstart, jgoal)
         self.tf = self.dt * np.ceil(
             np.max(abs(jgoal - jstart) / mean_v) / self.dt)
         a = self.tl.poly_coeff(0., 1., self.tf)
-        n = int(self.tf / self.dt) + 1
+        n = round(self.tf / self.dt) + 1
         q = np.zeros((n, 3))
         qd = np.zeros((n, 3))
         qdd = np.zeros((n, 3))
         p = np.zeros((n, 3))
-        for i, t in enumerate(
-                np.arange(start=0, stop=self.tf + self.dt, step=self.dt)):
+        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             s, sd, sdd = self.tl.poly(t, a)
-            q[i, :] = jstart + (jgoal - jstart) * s
-            qd[i, :] = sd * (jgoal - jstart)
-            qdd[i, :] = sdd * (jgoal - jstart)
+            q[i, :] = jstart + dq * s
+            qd[i, :] = sd * dq
+            qdd[i, :] = sdd * dq
             p[i, :] = self.robot.fkine(q[i, :])
         pd = np.gradient(p, self.dt, axis=0)
         pdd = np.gradient(pd, self.dt, axis=0)
@@ -148,13 +160,14 @@ class Path(object):
         self.tf = self.dt * np.ceil(
             np.max(abs(goal - start) / mean_v) / self.dt)
         a = self.tl.poly_coeff(0., 1., self.tf)
-        n = int(self.tf / self.dt) + 1
+        n = round(self.tf / self.dt) + 1
         q = np.zeros((n, 3))
         p = np.zeros((n, 3))
         pd = np.zeros((n, 3))
         pdd = np.zeros((n, 3))
-        for i, t in enumerate(
-                np.arange(start=0, stop=self.tf + self.dt, step=self.dt)):
+        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+            if i == n:
+                break
             s, sd, sdd = self.tl.poly(t, a)
             p[i, :] = (start + (goal - start) * s)
             pd[i, :] = sd * (goal - start)
@@ -203,13 +216,14 @@ class Path(object):
             dx = pose[1, :] - pose[0, :]
             tau, T = self.tl.lspb_param(np.max(dx), max_v, max_a)
             self.tf = tau + T
-        n = int(self.tf / self.dt) + 1
+        n = round(self.tf / self.dt) + 1
         q = np.zeros((n, 3))
         p = np.zeros((n, 3))
         pd = np.zeros((n, 3))
         pdd = np.zeros((n, 3))
-        for i, t in enumerate(
-                np.arange(start=0, stop=self.tf + self.dt, step=self.dt)):
+        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+            if i == n:
+                break
             if pose.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
                 p[i, :] = pose[0, :] + s * dx
@@ -247,7 +261,7 @@ class Path(object):
 
         Returns:
         """
-        t = np.arange(start=0, stop=self.tf + self.dt, step=self.dt)
+        t = np.linspace(start=0, stop=self.tf, num=max(q.shape))
 
         # fig = plt.figure(figsize=plt.figaspect(2.))
         fig = plt.figure()
@@ -288,11 +302,14 @@ class Path(object):
         Note:
             tf has to be a sum of all trajectories times
         """
-        t = np.arange(start=0, stop=self.tf + self.dt, step=self.dt)
+        t = np.linspace(start=0, stop=self.tf, num=max(p.shape))
+
         fig = plt.figure(figsize=plt.figaspect(2.))
         fig.suptitle("Task space")
         ax = fig.add_subplot(4, 1, 1, projection='3d')
         ax.plot(p[:, 0], p[:, 1], zs=p[:, 2])
+        ax.plot(p[0, 0], p[0, 1], 'r*')
+        ax.plot(p[-1, 0], p[-1, 1], 'r*')
         ax = fig.add_subplot(4, 1, 2)
         ax.grid(True)
         ax.plot(t, p[:, 0], label='$x$')  # noqa
@@ -319,15 +336,22 @@ class Path(object):
 
 if __name__ == '__main__':
     path = Path()
-    st = np.array([-0.1, 0.3, 0.])
+    st = np.array([-0.5, 0.5, 0.])
     gl = np.array([0.0, 0.35, 0.3])
-    pose = np.array([[0., 0.3, 0.], [0.0, 0.3, 0.5], [0., 0.3, 0.]])
-    max_v = np.array([0.05, 0.05])
-    max_a = np.array([0.1, 0.1])
+    pose = np.array([[-0.5, 0.0, 0.], [0.0, 0.5, 0.], [0.4, 0.0, 0.],
+                     [0.0, 0.4, 0.0], [-0.4, 0., 0.0], [0.0, 0.3, 0.0],
+                     [0.3, 0.0, 0.0], [0., 0.2, 0.0], [-0.2, 0., 0.0],
+                     [-0.1, 0.1, 0.]])
+    max_v = np.array([0.05 for i in range(0, 9)])
+    max_a = np.array([0.1 for i in range(0, 9)])
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=st, goal=gl, mean_v=5)
     # q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
     # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=st, goal=gl, mean_v=0.5)
     q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
+
     path.plot_joint(q, qd, qdd)
     path.plot_task(p, pd, pdd)
+    plt.figure(3)
+    plt.plot(p[:, 0], p[:, 1], 'r')
+
     plt.show()

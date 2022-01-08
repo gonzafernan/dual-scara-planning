@@ -53,8 +53,8 @@ class FiveBar(object):
 
     def __init__(
         self,
-        d1: np.ndarray = np.array([-.125, .205, .205]),
-        d2: np.ndarray = np.array([.125, .205, .205])
+        d1: np.ndarray = np.array([0., .23, .35]),
+        d2: np.ndarray = np.array([0., .23, .35])
     ) -> None:
         """__init_ method:
 
@@ -63,7 +63,7 @@ class FiveBar(object):
             d2 (np.ndarray): 3X1 d column of MDH array
 
         """
-        self.arms = [Arm(d1, 1), Arm(d2, 1)]
+        self.arms = [Arm(d1, -1), Arm(d2, 1)]
         # End Effector co0rdinates
         self.endPose = np.array([0.0, 0.0, 0.0], dtype=float)
         self.assembly = 1  # +1 o -1
@@ -92,19 +92,34 @@ class FiveBar(object):
             joints[-1] = pose[-1].item()
 
         for i, arm in enumerate(self.arms):
-            phi = np.linalg.norm(-p + arm.base)
-            if phi <= arm.links.sum():  # if equal is in serie singularity
-                f = (p - arm.base) / 2
-                h = np.sqrt(4 * arm.links[0]**2 - phi**2) * \
-                    np.array([f[1], -f[0]]) / phi
+            phi = np.linalg.norm(p - arm.base)
+            if phi <= arm.links.sum(
+            ):  # if it is equal it is in serie singularity
+                OCu = (p - arm.base) / phi
+                foot = (arm.links[0]**2 - arm.links[1]**2 + phi**2) / (2 * phi)
+                height = np.sqrt(arm.links[0]**2 - foot**2)
 
-                r = f + arm.working * h
+                A = arm.base + foot * OCu + arm.working * height * np.array(
+                    [[0, 1], [-1, 0]]) @ OCu
+                # f = (p - arm.base) / 2
+                # print(f"f es {f}")
+                # h = np.sqrt(4 * arm.links[1] * arm.links[0] - phi**2) * \
+                #     np.array([f[1], -f[0]]) / phi
+
+                # print(f"h es {h}")
+                # r = f + arm.working * h + arm.base
+                # print(f"r es {r}")
 
                 # Update robot
-                joints[i] = np.arctan2(r[1], r[0])
+                joints[i] = np.arctan2(A[1], A[0])
             else:
                 # TODO:Implementar alguna forma para que no se bloquee.
                 print('Point outside of workspace')
+                joints[:2] = self.joints[:2]
+        self.arms[0].rOA = self.arms[0].base + self.arms[0].links[0] * \
+            np.array([np.cos(joints[0]), np.sin(joints[0])])
+        self.arms[1].rOA = self.arms[1].base + self.arms[1].links[0] * \
+            np.array([np.cos(joints[1]), np.sin(joints[1])])
         self.joints = joints
         return joints
 
@@ -129,18 +144,18 @@ class FiveBar(object):
         rOA2 = self.arms[1].base + self.arms[1].links[0] * \
             np.array([np.cos(q[1]), np.sin(q[1])])
 
-        phi = np.linalg.norm(rOA1 - rOA2)
+        phi = np.linalg.norm(rOA2 - rOA1)
 
         if phi <= self.arms[0].links[1] + self.arms[1].links[1]:
             f = (rOA2 - rOA1) / 2.0
-            h = np.sqrt(4 * self.arms[0].links[0]**2 - phi**2) * \
+            h = np.sqrt(4 * self.arms[0].links[1]**2 - phi**2) * \
                 np.array([-f[1], f[0]]) / phi
 
-            # In working mode +- we have to change the assembly mode
-            if (self.arms[0].working == 1 and self.arms[1].working == -1):
-                p = rOA1 + f - self.assembly * h
-            else:
+            # In working mode -+ we have to rotate -90 deg
+            if (self.arms[0].working == -1 and self.arms[1].working == 1):
                 p = rOA1 + f + self.assembly * h
+            else:
+                p = rOA1 + f - self.assembly * h
 
             p = np.append(p, q[-1])
             # Update robot
@@ -149,8 +164,8 @@ class FiveBar(object):
             self.arms[1].rOA = rOA2
             return p
         else:
-            print('Imposible to solve inverse kinematic')
-            return np.NaN
+            print('Imposible to solve forward kinematic')
+            return np.zeros((1, 3))
 
     def showRobot(self):
         """ Show robot with numpy
@@ -173,30 +188,41 @@ class FiveBar(object):
         l22_y = [self.arms[1].rOA[1], self.endPose[1]]
 
         # Arm 1
-        plt.plot(l11_x, l11_y, color='r', linewidth=3.0)
-        plt.plot(l12_x, l12_y, color='r', linewidth=3.0)
+        plt.plot(l11_x, l11_y, 'r', linewidth=3.0)
+        plt.plot(l12_x, l12_y, 'r', linewidth=3.0)
         # Arm 2
-        plt.plot(l21_x, l21_y, color='b', linewidth=3.0)
-        plt.plot(l22_x, l22_y, color='b', linewidth=3.0)
+        plt.plot(l21_x, l21_y, 'b', linewidth=3.0)
+        plt.plot(l22_x, l22_y, 'b', linewidth=3.0)
 
-        plt.axis(0.4 * np.array([-1, 1, -1, 1]))
+        plt.axis(0.5 * np.array([-1, 1, -1, 1]))
         plt.grid(True)
-        plt.show()
 
 
 def main():
-    l = 0.205  # noqa
-    b = 0.125
-    five = FiveBar(np.array([-b, l, l]), np.array([b, l, l]))
-    five.endPose = np.array([0.0, 0.3])
+    l1 = 0.23
+    l2 = 0.35
+    b = 0.0
+    five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
+    # [-0.1, 0.2, 0.] [0.0, 0.3, 0.]
+    five.endPose = np.array([0.1, 0.2, 0.])
     print("-+ mode 1")
-    five.arms[0].wkode_ = -1
+    five.arms[0].working = -1
+    five.arms[1].working = 1
+    five.assembly = 1
+
     five.ikine()
+    print("inverse")
     print(five.joints)
-    five.assembly = -1
+    plt.subplot(2, 2, 1)
+    five.showRobot()
+    # five.fkine(np.array([-0.1, 0.2]))
+    print("direct")
     five.fkine()
     print(five.endPose)
+    plt.subplot(2, 2, 2)
     five.showRobot()
+    plt.show()
+    # print(np.array([[0, 1], [-1, 0]]) @ np.array([1, 2]))
 
 
 if __name__ == "__main__":

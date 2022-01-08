@@ -43,8 +43,8 @@ def test_go_to(gpath):
     q, qd, qdd, p, pd, pdd = gpath.path.go_to(goals=gls, max_v=5, max_a=10)
     for i in range(0, 3):
         assert p[0, i] == gpath.st[i]
-        assert np.round(p[-1, i], decimals=5) == np.round(gpath.gl[i],
-                                                          decimals=5)
+        assert np.round(p[-1, i], decimals=3) == np.round(gpath.gl[i],
+                                                          decimals=3)
 
 
 def test_go_to_poly(gpath):
