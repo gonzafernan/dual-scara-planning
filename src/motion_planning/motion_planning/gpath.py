@@ -30,13 +30,131 @@ class Path(object):
         result.append(q2[-1] - q1[-1])
         return np.array(result)
 
+    def move_from_end(
+        self,
+        goal: np.ndarray = np.array([0.0, 0., 0.]),
+        max_v: float = 1,
+        max_a: float = 0.5
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+               np.ndarray]:
+        """ Move relative to end effector frame in task space.
+            Linear segment with parabolic blend
+
+        Args:
+            goal(np.ndarray): goal point 3X
+            max_v(np.ndarray): max velocity
+            max_a(np.ndarray): max acceleration
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+
+        start = self.robot.endPose
+        goal += self.robot.endPose
+        pose = np.block([[start], [goal]])
+        return self.line(pose, max_v, max_a)
+
+    def move_x_from_end(
+        self,
+        x: float = 0.05,
+        max_v: float = 1,
+        max_a: float = 0.5
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+               np.ndarray]:
+        """ Move relative to end effector frame, x direcction in task space.
+            Linear segment with parabolic blend
+
+        Args:
+            pose(float):  relative positions to move
+            max_v(float): max velocity
+            max_a(float): max acceleration
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+
+        start = self.robot.endPose
+        goal = np.copy(self.robot.endPose)
+        goal[0] = self.robot.endPose[0] + x
+        pose = np.block([[start], [goal]])
+        return self.line(pose, max_v, max_a)
+
+    def move_y_from_end(
+        self,
+        y: float = 0.05,
+        max_v: float = 1,
+        max_a: float = 0.5
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+               np.ndarray]:
+        """ Move relative to end effector frame, y direcction in task space.
+            Linear segment with parabolic blend
+
+        Args:
+            pose(float):  relative positions to move
+            max_v(float): max velocity
+            max_a(float): max acceleration
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+
+        start = self.robot.endPose
+        goal = np.copy(self.robot.endPose)
+        goal[1] = self.robot.endPose[1] + y
+        pose = np.block([[start], [goal]])
+        return self.line(pose, max_v, max_a)
+
+    def move_z_from_end(
+        self,
+        z: float = 0.05,
+        max_v: float = 1,
+        max_a: float = 0.5
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
+               np.ndarray]:
+        """ Move relative to end effector frame, z direcction in task space.
+            Linear segment with parabolic blend
+
+        Args:
+            pose(float):  relative positions to move
+            max_v(float): max velocity
+            max_a(float): max acceleration
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+
+        start = self.robot.endPose
+        goal = np.copy(self.robot.endPose)
+        goal[2] = self.robot.endPose[2] + z
+        pose = np.block([[start], [goal]])
+        return self.line(pose, max_v, max_a)
+
     def go_to(self, goals: np.ndarray, max_v: float,
               max_a: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """ Go to goal with linear segment with parabolic blend in joint
             space
 
         Args:
-            start(np.ndarray): start point 3X
             goal(np.ndarray): goal point 3X
             max_v(np.ndarray): max velocity
             max_a(np.ndarray): max acceleration
@@ -336,18 +454,21 @@ class Path(object):
 
 if __name__ == '__main__':
     path = Path()
-    st = np.array([-0.5, 0.5, 0.])
-    gl = np.array([0.0, 0.35, 0.3])
-    pose = np.array([[-0.5, 0.0, 0.], [0.0, 0.5, 0.], [0.4, 0.0, 0.],
-                     [0.0, 0.4, 0.0], [-0.4, 0., 0.0], [0.0, 0.3, 0.0],
-                     [0.3, 0.0, 0.0], [0., 0.2, 0.0], [-0.2, 0., 0.0],
-                     [-0.1, 0.1, 0.]])
-    max_v = np.array([0.05 for i in range(0, 9)])
-    max_a = np.array([0.1 for i in range(0, 9)])
+    # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
+    path.robot.endPose = np.array([0., 0.3, 0.])
+    q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
+    # st = np.array([-0.5, 0.5, 0.])
+    # gl = np.array([0.0, 0.35, 0.3])
+    # pose = np.array([[-0.5, 0.0, 0.], [0.0, 0.5, 0.], [0.4, 0.0, 0.],
+    #                  [0.0, 0.4, 0.0], [-0.4, 0., 0.0], [0.0, 0.3, 0.0],
+    #                  [0.3, 0.0, 0.0], [0., 0.2, 0.0], [-0.2, 0., 0.0],
+    #                  [-0.1, 0.1, 0.]])
+    # max_v = np.array([0.05 for i in range(0, 9)])
+    # max_a = np.array([0.1 for i in range(0, 9)])
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=st, goal=gl, mean_v=5)
     # q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
     # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=st, goal=gl, mean_v=0.5)
-    q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
+    # q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
 
     path.plot_joint(q, qd, qdd)
     path.plot_task(p, pd, pdd)

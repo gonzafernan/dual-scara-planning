@@ -6,29 +6,27 @@ from zmqRemoteApi import RemoteAPIClient
 import time
 import matplotlib.pyplot as plt
 
-d1 = np.array([-0.125, 0.23, 0.23])
-d2 = np.array([0.125, 0.23, 0.23])
+d1 = np.array([-0.125, 0.2, 0.2])
+d2 = np.array([0.125, 0.2, 0.2])
 robot = fb.FiveBar(d1, d2)
 path = gp.Path(robot)
 st = np.array([-0.1, 0.3, 0.])
 gl = np.array([0.0, 0.35, 0.3])
-pose = np.array([[-.11, 0.3, 0.], [0.1, 0.35, 0.], [.1, 0.1, 0.]])
-print(pose[0, :])
+pose = np.array([[-.1, 0.3, 0.], [0.1, 0.3, 0.], [.1, 0.3, 0.]])
 robot.ikine(pose[0, :])
 robot.ikine(pose[1, :])
 robot.ikine(pose[2, :])
 max_v = np.array([1, 1])
 max_a = np.array([4, 4])
 # q, qd, qdd, p, pd, pdd = path.line_poly(start=st, goal=gl, mean_v=5)
-# q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
+q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
 # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=st, goal=gl, mean_v=0.5)
-q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
+# q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
 
 # no resuelve la cinematica inversa
 # plt.plot(q[:, 0], q[:, 1])
 plt.plot(p[:, 0], p[:, 1])
 plt.show()
-time.sleep(10)
 client = RemoteAPIClient()
 sim = client.getObject('sim')
 
