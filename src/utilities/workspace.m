@@ -3,12 +3,12 @@ show_robot_move = false; % For show robot with peter corke
 % Proximal and distal length
 % If distal > proximal, there are not type 2 sigularities
 
-% NOTE: In the paper said: Clearly, if the proximal and distal links of a 
+% NOTE: In the paper said: Clearly, if the proximal and distal links of a
 % five-bar robot are of different lengths, the robot’s workspace will have
 % holes and it would be impossible to beat the RP-5AH design.
 % Therefore, all links should be of the same length, l 1 = l 2 = l.
-% I can understand what it means.
-proximal = 0.200; 
+% I cannot understand what it means.
+proximal = 0.200;
 distal = 0.260;
 d =0.085; % Distance between bases. The smaller d is, the larger workspace become
 base = d/2; % Absolute distance from the reference frame to base link
@@ -96,7 +96,7 @@ plot((distal-proximal)*cos(0:0.01:2*pi)+base, ...
 plot((distal-proximal)*cos(0:0.01:2*pi)-base, ...
     (distal-proximal)*sin(0:0.01:2*pi),'k--');
 
-%% Type 2 
+%% Type 2
 % singularity loci for all working modes consist of two
 % circles of radius distal described by point C when A12 and A22 coin-
 % cide (denoted by C_1 and C_2 ) and a sextic (denoted by S:).
@@ -110,7 +110,7 @@ plot((distal-proximal)*cos(0:0.01:2*pi)-base, ...
 %     proximal*sin(0:0.01:2*pi),'m');
 % plot(proximal*cos(0:0.01:2*pi)-base, ...
 %     proximal*sin(0:0.01:2*pi),'m');
-if proximal >= distal 
+if proximal >= distal
     % Assembly 1
     a = 0.31+pi/2; % Start point
     x_1 = distal*cos(-a:0.01:3*pi/2+0.4);

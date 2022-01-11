@@ -20,13 +20,11 @@ def gpath():
 
 
 def test_lspb(gpath):
-    q, qd, qdd, p, pd, pdd = gpath.path.line_lspb(start=gpath.st,
-                                                  goal=gpath.gl,
-                                                  max_v=5,
-                                                  max_a=10)
+    pose = np.concatenate((gpath.st, gpath.gl), axis=0).reshape(2, 3)
+    q, qd, qdd, p, pd, pdd = gpath.path.line(pose=pose, max_v=5, max_a=10)
     for i in range(0, 3):
-        assert p[i, 0] == gpath.st[i]
-        assert np.round(p[i, -1], decimals=5) == np.round(gpath.gl[i],
+        assert p[0, i] == gpath.st[i]
+        assert np.round(p[-1, i], decimals=5) == np.round(gpath.gl[i],
                                                           decimals=5)
 
 
@@ -35,20 +33,18 @@ def test_poly(gpath):
                                                   goal=gpath.gl,
                                                   mean_v=5)
     for i in range(0, 3):
-        assert p[i, 0] == gpath.st[i]
-        assert np.round(p[i, -1], decimals=2) == np.round(gpath.gl[i],
+        assert p[0, i] == gpath.st[i]
+        assert np.round(p[-1, i], decimals=2) == np.round(gpath.gl[i],
                                                           decimals=2)
 
 
 def test_go_to(gpath):
-    q, qd, qdd, p, pd, pdd = gpath.path.go_to(start=gpath.st,
-                                              goal=gpath.gl,
-                                              max_v=5,
-                                              max_a=10)
+    gls = np.concatenate((gpath.st, gpath.gl), axis=0).reshape(2, 3)
+    q, qd, qdd, p, pd, pdd = gpath.path.go_to(goals=gls, max_v=5, max_a=10)
     for i in range(0, 3):
-        assert p[i, 0] == gpath.st[i]
-        assert np.round(p[i, -1], decimals=5) == np.round(gpath.gl[i],
-                                                          decimals=5)
+        assert p[0, i] == gpath.st[i]
+        assert np.round(p[-1, i], decimals=3) == np.round(gpath.gl[i],
+                                                          decimals=3)
 
 
 def test_go_to_poly(gpath):
@@ -56,6 +52,6 @@ def test_go_to_poly(gpath):
                                                    goal=gpath.gl,
                                                    mean_v=0.5)
     for i in range(0, 3):
-        assert p[i, 0] == gpath.st[i]
-        assert np.round(p[i, -1], decimals=5) == np.round(gpath.gl[i],
+        assert p[0, i] == gpath.st[i]
+        assert np.round(p[-1, i], decimals=5) == np.round(gpath.gl[i],
                                                           decimals=5)
