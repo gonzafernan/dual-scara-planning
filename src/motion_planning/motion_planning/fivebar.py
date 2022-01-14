@@ -121,7 +121,11 @@ class FiveBar(object):
         self.arms[1].rOA = self.arms[1].base + self.arms[1].links[0] * \
             np.array([np.cos(joints[1]), np.sin(joints[1])])
         self.joints = joints
-        return joints
+        if self.is_inside_bounds(joints[0], joints[1]):
+            return joints
+        else:
+            print("Out of bounds")
+            return joints
 
     def fkine(self, joint: np.ndarray = 0) -> np.ndarray:
         """ Forward kinematics
@@ -138,7 +142,6 @@ class FiveBar(object):
             q = self.joints
         else:
             q = joint
-
         rOA1 = self.arms[0].base + self.arms[0].links[0] * \
             np.array([np.cos(q[0]), np.sin(q[0])])
         rOA2 = self.arms[1].base + self.arms[1].links[0] * \
@@ -162,7 +165,11 @@ class FiveBar(object):
             self.endPose = p
             self.arms[0].rOA = rOA1
             self.arms[1].rOA = rOA2
-            return p
+            if self.is_inside_bounds(q[0], q[1]):
+                return p
+            else:
+                print("Out of bounds")
+                return np.zeros((1, 3))
         else:
             print('Imposible to solve forward kinematic')
             return np.zeros((1, 3))
@@ -218,6 +225,11 @@ class FiveBar(object):
         dot_product = np.dot(base2r2, base2r1)
         return abs(np.arccos(dot_product))
 
+    def is_inside_bounds(self, q1, q2):
+        return self.distals_angle(
+        ) > self.minDistalAngle and self.proximals_angle(
+        ) > self.minProximalAngle and q2 < q1
+
     def work_space(self):
         q1 = np.arange(start=self.jlimit[0, 0],
                        stop=self.jlimit[0, 1] + 0.1,
@@ -230,9 +242,7 @@ class FiveBar(object):
         for q_2 in q2:
             for q_1 in q1:
                 self.fkine(np.array([q_1, q_2, 0.]))
-                if self.distals_angle(
-                ) > self.minDistalAngle and self.proximals_angle(
-                ) > self.minProximalAngle and q_2 < q_1:
+                if self.is_inside_bounds(q_1, q_2):
                     p[count, :] = np.copy(
                         self.endPose)  # self.fkine(np.array([q_1, q_2, 0.]))
                     q[count, :] = np.array([q_1, q_2, 0.])
