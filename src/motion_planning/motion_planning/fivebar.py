@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+# import os
 
 # Table 7.1 The MDH parameters of the five-bar legs
 # ij a(ij) μ_ij σ_ij γ_ij b_ij α_ij d_ij θ_ij r_ij
@@ -68,6 +69,12 @@ class FiveBar(object):
         self.endPose = np.array([0.0, 0.0, 0.0], dtype=float)
         self.assembly = 1  # +1 o -1
         self.joints = np.array([0.0, 0.0, 0.0], dtype=float)
+        self.jlimit = np.array([[np.deg2rad(-40),
+                                 np.deg2rad(220)],
+                                [np.deg2rad(-40),
+                                 np.deg2rad(220)], [0, 0.5]])
+        self.minDistalAngle = np.deg2rad(5)
+        self.minProximalAngle = np.deg2rad(5)
 
     def ikine(self, pose: np.ndarray = 0) -> np.ndarray:
         """ Inverse kinematics. If non parameter is passed the current
@@ -101,19 +108,12 @@ class FiveBar(object):
 
                 A = arm.base + foot * OCu + arm.working * height * np.array(
                     [[0, 1], [-1, 0]]) @ OCu
-                # f = (p - arm.base) / 2
-                # print(f"f es {f}")
-                # h = np.sqrt(4 * arm.links[1] * arm.links[0] - phi**2) * \
-                #     np.array([f[1], -f[0]]) / phi
-
-                # print(f"h es {h}")
-                # r = f + arm.working * h + arm.base
-                # print(f"r es {r}")
 
                 # Update robot
                 joints[i] = np.arctan2(A[1], A[0])
             else:
                 # TODO:Implementar alguna forma para que no se bloquee.
+                # TODO:Throw exception
                 print('Point outside of workspace')
                 joints[:2] = self.joints[:2]
         self.arms[0].rOA = self.arms[0].base + self.arms[0].links[0] * \
@@ -190,12 +190,84 @@ class FiveBar(object):
         # Arm 1
         plt.plot(l11_x, l11_y, 'r', linewidth=3.0)
         plt.plot(l12_x, l12_y, 'r', linewidth=3.0)
+        plt.plot(self.arms[0].rOA[0], self.arms[0].rOA[1], 'k *')
         # Arm 2
         plt.plot(l21_x, l21_y, 'b', linewidth=3.0)
         plt.plot(l22_x, l22_y, 'b', linewidth=3.0)
+        plt.plot(self.arms[1].rOA[0], self.arms[1].rOA[1], 'k *')
 
-        plt.axis(0.5 * np.array([-1, 1, -1, 1]))
+        # End
+        plt.plot(self.endPose[0], self.endPose[1], 'k *')
+
+        plt.axis(0.6 * np.array([-1, 1, -1, 1]))
         plt.grid(True)
+
+    def distals_angle(self):
+        end2r1 = self.arms[0].rOA - self.endPose[:2]
+        end2r1 /= np.linalg.norm(end2r1)
+        end2r2 = self.arms[1].rOA - self.endPose[:2]
+        end2r2 /= np.linalg.norm(end2r2)
+        dot_product = np.dot(end2r1, end2r2)
+        return abs(np.arccos(dot_product))
+
+    def proximals_angle(self):
+        base2r1 = self.arms[0].rOA - self.arms[0].base[:2]
+        base2r1 /= np.linalg.norm(base2r1)
+        base2r2 = self.arms[1].rOA - self.arms[1].base[:2]
+        base2r2 /= np.linalg.norm(base2r2)
+        dot_product = np.dot(base2r2, base2r1)
+        return abs(np.arccos(dot_product))
+
+    def work_space(self):
+        q1 = np.arange(start=self.jlimit[0, 0],
+                       stop=self.jlimit[0, 1] + 0.1,
+                       step=0.1)
+        q2 = np.copy(q1)
+        max_points = 1035
+        p = np.zeros((max_points, 3))
+        q = np.copy(p)
+        count = 0
+        for q_2 in q2:
+            for q_1 in q1:
+                self.fkine(np.array([q_1, q_2, 0.]))
+                if self.distals_angle(
+                ) > self.minDistalAngle and self.proximals_angle(
+                ) > self.minProximalAngle and q_2 < q_1:
+                    p[count, :] = np.copy(
+                        self.endPose)  # self.fkine(np.array([q_1, q_2, 0.]))
+                    q[count, :] = np.array([q_1, q_2, 0.])
+                    # self.showRobot()
+                    # filenumber = count
+                    # filenumber = format(filenumber, "05")
+                    # filename = "image{}.png".format(filenumber)
+                    # plt.savefig(filename)
+                    # plt.close()
+                    count += 1
+        # os.system("ffmpeg -f image2 -r 25 -i image%05d.png -vcodec mpeg4 -y \
+        #         workspace.avi")
+        # os.system("rm *.png")
+        plt.figure(1)
+        plt.plot(p[:count, 0], p[:count, 1], 'r .')
+        # plot((proximal + distal)*cos(dtheta-pi/2:0.01:pi/2-dtheta)-base, ...
+        rl = self.arms[0].links.sum()
+        plt.plot(rl * np.cos(q1), rl * np.sin(q1), 'k')
+        # rs = self.arms[0].links[1] - self.arms[0].links[0]
+        # plt.plot(rs * np.cos(q1), rs * np.sin(q1), 'k')
+        q3 = np.arange(start=self.jlimit[0, 0],
+                       stop=np.deg2rad(120) + 0.1,
+                       step=0.1)
+        plt.plot(0.35 * np.cos(q3) + 0.23 * np.cos(self.jlimit[0, 0]),
+                 0.35 * np.sin(q3) + 0.23 * np.sin(self.jlimit[0, 0]), 'k')
+        q4 = np.arange(start=np.deg2rad(65),
+                       stop=np.deg2rad(210) + 0.1,
+                       step=0.1)
+        # Find what kind of curve is.
+        plt.plot(0.355 * np.cos(q4) + 0.23 * np.sin(self.jlimit[0, 1]),
+                 0.355 * np.sin(q4) + 0.23 * np.cos(self.jlimit[0, 1]), 'k')
+        plt.grid(True)
+        # plt.figure(2)
+        # plt.plot(q[:count, 0], q[:count, 1], 'b .')
+        # plt.grid(True)
 
 
 def main():
@@ -203,24 +275,25 @@ def main():
     l2 = 0.35
     b = 0.0
     five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
+    five.work_space()
     # [-0.1, 0.2, 0.] [0.0, 0.3, 0.]
-    five.endPose = np.array([0.1, 0.2, 0.])
-    print("-+ mode 1")
-    five.arms[0].working = -1
-    five.arms[1].working = 1
-    five.assembly = 1
+    # five.endPose = np.array([0.1, 0.2, 0.])
+    # print("-+ mode 1")
+    # five.arms[0].working = -1
+    # five.arms[1].working = 1
+    # five.assembly = 1
 
-    five.ikine()
-    print("inverse")
-    print(five.joints)
-    plt.subplot(2, 2, 1)
-    five.showRobot()
-    # five.fkine(np.array([-0.1, 0.2]))
-    print("direct")
-    five.fkine()
-    print(five.endPose)
-    plt.subplot(2, 2, 2)
-    five.showRobot()
+    # five.ikine()
+    # print("inverse")
+    # print(five.joints)
+    # plt.subplot(2, 2, 1)
+    # five.showRobot()
+    # # five.fkine(np.array([-0.1, 0.2]))
+    # print("direct")
+    # five.fkine()
+    # print(five.endPose)
+    # plt.subplot(2, 2, 2)
+    # five.showRobot()
     plt.show()
     # print(np.array([[0, 1], [-1, 0]]) @ np.array([1, 2]))
 
