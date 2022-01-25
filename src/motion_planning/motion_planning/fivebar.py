@@ -112,22 +112,22 @@ class FiveBar(object):
                 # Update robot
                 joints[i] = np.arctan2(A[1], A[0])
             else:
-                # TODO:Throw exception
                 print(f'Point outside of workspace {pose}')
                 RuntimeError(f"Point outside of workspace {pose}")
-                exit()
+                # exit()
         self.arms[0].rOA = self.arms[0].base + self.arms[0].links[0] * \
             np.array([np.cos(joints[0]), np.sin(joints[0])])
         self.arms[1].rOA = self.arms[1].base + self.arms[1].links[0] * \
             np.array([np.cos(joints[1]), np.sin(joints[1])])
         if self.is_inside_bounds(joints[0], joints[1]):
+            joints[0], joints[1] = self.transform_angle(joints[0], joints[1])
             self.joints = joints
             self.endPose = np.block([p, joints[-1]])
             return joints
         else:
             print(f"Pose out of bounds {pose}")
             RuntimeError(f"Pose out of bounds {pose}")
-            exit()
+            # exit()
 
     def fkine(self, joint: np.ndarray = 0) -> np.ndarray:
         """ Forward kinematics
@@ -172,60 +172,49 @@ class FiveBar(object):
             else:
                 print(f"Joints out of bounds: {np.rad2deg(q)}")
                 RuntimeError(f"Joints out of bounds: {np.rad2deg(q)}")
-                exit()
+                # exit()
         else:
             print(f'Imposible to solve forward kinematic for joints: {q}')
             exit()
 
+    def transform_angle(self, q1, q2):
+        if q1 <= -np.pi / 2:
+            q1 = q1 % (2 * np.pi)
+        if q2 <= -np.pi / 2:
+            q2 = q2 % (2 * np.pi)
+        return q1, q2
+
     def are_distals_ok(self):
-        # end2r1 = self.arms[0].rOA - self.endPose[:2]
-        # end2r1 /= np.linalg.norm(end2r1)
-        # end2r2 = self.arms[1].rOA - self.endPose[:2]
-        # end2r2 /= np.linalg.norm(end2r2)
-        # dot_product = np.dot(end2r1, end2r2)
-        # return abs(np.arccos(dot_product)) > self.minDistalAngle
-        # TODO: SOlve problems with this limit
-        return True
+        end2r1 = self.arms[0].rOA - self.endPose[:2]
+        end2r1 /= np.linalg.norm(end2r1)
+        end2r2 = self.arms[1].rOA - self.endPose[:2]
+        end2r2 /= np.linalg.norm(end2r2)
+        dot_product = np.dot(end2r1, end2r2)
+        return abs(np.arccos(dot_product)) >= self.minDistalAngle
 
     def are_proximals_ok(self, q1, q2):
-        base2r1 = self.arms[0].rOA - self.arms[0].base[:2]
-        base2r1 /= np.linalg.norm(base2r1)
-        base2r2 = self.arms[1].rOA - self.arms[1].base[:2]
-        base2r2 /= np.linalg.norm(base2r2)
-        dot_product = np.dot(base2r2, base2r1)
-        if dot_product == 0:
-            angle = np.pi / 2
-        else:
-            angle = abs(np.arccos(dot_product))
         if q1 > q2:
-            if angle > self.minProximalAngle:
+            angle = q1 - q2
+            if angle >= self.minProximalAngle:
                 return True
             else:
                 return False
-        elif q1 < -np.pi / 2:
-            if q1 % (2 * np.pi) > q2:
-                if angle > self.minProximalAngle:
-                    return True
-                else:
-                    return False
         else:
             return False
 
     def are_inside_limits(self, q1, q2):
-        q1 = q1 % (2 * np.pi)
-        q2 = q2 % (2 * np.pi)
-        return q1 >= 2 * np.pi + self.jlimit[0, 0] or q1 <= self.jlimit[
-            0, 1] and q2 >= 2 * np.pi + self.jlimit[1, 0] or q2 <= self.jlimit[
-                1, 1]
+        return (q1 >= self.jlimit[0, 0] and
+                q1 <= self.jlimit[0, 1]) and (q2 >= self.jlimit[1, 0] and
+                                              q2 <= self.jlimit[1, 1])
 
     def is_inside_bounds(self, q1, q2):
+        q1, q2 = self.transform_angle(q1, q2)
         if not self.are_distals_ok():
             print("distal")
         if not self.are_proximals_ok(q1, q2):
             print("proximal")
         if not self.are_inside_limits(q1, q2):
             print("Limits")
-            print(q1 * 180 / np.pi, q2 * 180 / np.pi)
         return self.are_distals_ok() and self.are_proximals_ok(
             q1, q2) and self.are_inside_limits(q1, q2)
 
@@ -265,45 +254,40 @@ class FiveBar(object):
         plt.grid(True)
 
     def work_space(self):
-        q1 = np.arange(start=-2 * np.pi, stop=2 * np.pi, step=0.05)
+        q1 = np.arange(start=self.jlimit[0, 0],
+                       stop=self.jlimit[0, 1] + 0.1,
+                       step=0.1)
         q2 = np.copy(q1)
         max_points = q1.size * q1.size
-        p = np.zeros((2 * max_points, 3))
+        p = np.zeros((max_points, 3))
+        q = np.zeros((max_points, 3))
         count = 0
         for q_2 in q2:
             for q_1 in q1:
-                self.fkine(np.array([q_1, q_2, 0.]))
-                if self.is_inside_bounds(q_1, q_2):
-                    p[count, :] = np.copy(self.endPose)
-                    # self.showRobot()
-                    # filenumber = count
-                    # filenumber = format(filenumber, "05")
-                    # filename = "image{}.png".format(filenumber)
-                    # plt.savefig(filename)
-                    # plt.close()
-                    count += 1
-        for q_1 in q1:
-            for q_2 in q2:
-                self.fkine(np.array([q_1, q_2, 0.]))
-                if self.is_inside_bounds(q_1, q_2):
-                    p[count, :] = np.copy(self.endPose)
-                    # self.showRobot()
-                    # filenumber = count
-                    # filenumber = format(filenumber, "05")
-                    # filename = "image{}.png".format(filenumber)
-                    # plt.savefig(filename)
-                    # plt.close()
-                    count += 1
+                try:
+                    self.fkine(np.array([q_1, q_2, 0.]))
+
+                    if self.is_inside_bounds(q_1, q_2):
+                        q[count, :] = np.array([q_1, q_2, 0])
+                        p[count, :] = self.endPose
+                        # self.showRobot()
+                        # filenumber = count
+                        # filenumber = format(filenumber, "05")
+                        # filename = "image{}.png".format(filenumber)
+                        # plt.savefig(filename)
+                        # plt.close()
+                        count += 1
+                except RuntimeError:
+                    continue
         # os.system("ffmpeg -f image2 -r 25 -i image%05d.png -vcodec mpeg4 -y \
         #         workspace.avi")
         # os.system("rm *.png")
+
         plt.figure(1)
+        print(count)
         plt.plot(p[:count, 0], p[:count, 1], 'r .')
-        # plot((proximal + distal)*cos(dtheta-pi/2:0.01:pi/2-dtheta)-base, ...
         rl = self.arms[0].links.sum()
         plt.plot(rl * np.cos(q1), rl * np.sin(q1), 'k')
-        # rs = self.arms[0].links[1] - self.arms[0].links[0]
-        # plt.plot(rs * np.cos(q1), rs * np.sin(q1), 'k')
         q3 = np.arange(start=self.jlimit[0, 0],
                        stop=np.deg2rad(125) + 0.1,
                        step=0.1)
@@ -316,6 +300,8 @@ class FiveBar(object):
         plt.plot(0.35 * np.cos(q4) + 0.23 * np.sin(self.jlimit[0, 1]),
                  0.35 * np.sin(q4) + 0.23 * np.cos(self.jlimit[0, 1]), 'k')
         plt.grid(True)
+        plt.show()
+        return q
 
 
 def main():
@@ -323,34 +309,7 @@ def main():
     l2 = 0.35
     b = 0.0
     five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
-    q = five.ikine(np.array([0, 0.26, 0]))
-    print(q)
-    p = five.fkine(q)
-    print(p)
-    q1 = five.ikine(p)
-    print(q1)
-    p1 = five.fkine(q1)
-    print(p1)
-
-    # [-0.1, 0.2, 0.] [0.0, 0.3, 0.]
-    # five.endPose = np.array([0.1, 0.2, 0.])
-    # print("-+ mode 1")
-    # five.arms[0].working = -1
-    # five.arms[1].working = 1
-    # five.assembly = 1
-
-    # five.ikine()
-    # print("inverse")
-    # print(five.joints)
-    # plt.subplot(2, 2, 1)
-    # five.showRobot()
-    # # five.fkine(np.array([-0.1, 0.2]))
-    # print("direct")
-    # five.fkine()
-    # print(five.endPose)
-    # plt.subplot(2, 2, 2)
-    # five.showRobot()
-    # print(np.array([[0, 1], [-1, 0]]) @ np.array([1, 2]))
+    five.work_space()
 
 
 if __name__ == "__main__":
