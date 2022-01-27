@@ -19,17 +19,6 @@ class Path(object):
         else:
             return False
 
-    def delta_q(self, q1, q2):
-        result = []
-        for start, goal in zip(q1[0:2], q2[0:2]):
-            if self.right_side(start) and self.right_side(goal):
-                x = goal - start
-            else:
-                x = goal % (2. * np.pi) - start % (2. * np.pi)
-            result.append(x)
-        result.append(q2[-1] - q1[-1])
-        return np.array(result)
-
     def move_from_end(
         self,
         goal: np.ndarray = np.array([0.0, 0., 0.]),
@@ -178,8 +167,8 @@ class Path(object):
             T = np.zeros(last_goal)
             for i in range(0, last_goal):
                 # + counter clockwise
-                dq[i, :] = self.delta_q(self.robot.ikine(goals[i, :]),
-                                        self.robot.ikine(goals[i + 1, :]))
+                dq[i, :] = self.robot.ikine(goals[i + 1, :]) - self.robot.ikine(
+                    goals[i, :])
                 tau_, T_ = self.tl.lspb_param(np.max(abs(dq[i, :])), max_v[i],
                                               max_a[i])
                 tau[i] = tau_
@@ -187,8 +176,7 @@ class Path(object):
             self.tf = tau[-1] + T.sum()
             T2 = T[0]
         else:
-            dq = self.delta_q(self.robot.ikine(goals[0, :]),
-                              self.robot.ikine(goals[1, :]))
+            dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
             tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
             self.tf = tau + T
         n = round(self.tf / self.dt) + 1
@@ -239,7 +227,7 @@ class Path(object):
         """
         jstart = self.robot.ikine(start)
         jgoal = self.robot.ikine(goal)
-        dq = self.delta_q(jstart, jgoal)
+        dq = jgoal - jstart
         self.tf = self.dt * np.ceil(
             np.max(abs(jgoal - jstart) / mean_v) / self.dt)
         a = self.tl.poly_coeff(0., 1., self.tf)

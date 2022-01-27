@@ -1,6 +1,7 @@
 __pycache__/
 .vscode/
 #conda environment
-envs/ 
+envs/
 # pytest
 .pytest_cache
+*.avi

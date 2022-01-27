@@ -1,5 +1,5 @@
 clear;
-show_robot_move = false; % For show robot with peter corke
+show_robot_move = true; % For show robot with peter corke
 % Proximal and distal length
 % If distal > proximal, there are not type 2 sigularities
 
@@ -8,21 +8,21 @@ show_robot_move = false; % For show robot with peter corke
 % holes and it would be impossible to beat the RP-5AH design.
 % Therefore, all links should be of the same length, l 1 = l 2 = l.
 % I cannot understand what it means.
-proximal = 0.200;
-distal = 0.260;
-d =0.085; % Distance between bases. The smaller d is, the larger workspace become
+proximal = 0.230;
+distal = 0.350;
+d =0.0; % Distance between bases. The smaller d is, the larger workspace become
 base = d/2; % Absolute distance from the reference frame to base link
 
 d1 = [-base, proximal, distal];
 d2 = [base, proximal, distal];
 q1 = [0, 0, 0]; % [0.4072, 0, 0];
 q2 = [0, 0, 0]; % [1.1393, 0, 0];
-ass_mode = -1; % -1 for 2nd model
+ass_mode = 1; % -1 for 2nd model
 
 j=0;
 dq=0.1;
-qa_ =-2*pi:dq:2*pi;
-qb_=-2*pi:dq:2*pi;
+qa_ =-pi:dq:pi;
+qb_=-pi:dq:pi;
 max_j = 15876;
 pp_ = zeros(2,max_j);
 q1_ = zeros(3,max_j);
@@ -33,21 +33,36 @@ for m=1:length(qa_)
     for n=1:length(qb_)
         q1(1)=qb_(n);
         % from dextar paper
-        A12 = [d1(2)*cos(q1(1))+d1(1); d1(2)*sin(q1(1))];
-        A22 = [d2(2)*cos(q2(1))+d2(1); d2(2)*sin(q2(1))];
-        s = sqrt(sum((A22-A12).^2));
-        if s <= 2*distal
+        A12 = [d1(2)*cos(q1(1)); d1(2)*sin(q1(1))];
+        A22 = [d2(2)*cos(q2(1)); d2(2)*sin(q2(1))];
+%         s = sqrt(sum((A22-A12).^2));
+        s = norm(A22-A12);
+        if s <= 2 * distal
             j=j+1;
             %from dextar paper
-            v = (A12-A22)/2;
-            h = [v(2); - v(1)]*2/s * sqrt(distal^2-(s/2)^2);
-            x = A22(1)+v(1)+ ass_mode * h(1);
-            y = A22(2)+v(2)+ ass_mode * h(2);
+            v = (A22-A12)/2;
+            h = [-v(2);  v(1)]/s * sqrt(4 * proximal^2 - s^2);
+            x = A12(1) + v(1) + ass_mode * h(1);
+            y = A12(2) + v(2) + ass_mode * h(2);
+            x22 = A22(1) + v(1) + ass_mode * h(1);
+            y22 = A22(2) + v(2) + ass_mode * h(2);
+%             if round(x22) ~= round(x) || round(y22) ~= round(y)
+%                 disp('Fractura')
+%                 break
+%             end
             pp_(:,j)=[x;y];
 
             % for q12 and q22 from
-            q1(2) = atan2(y-d1(2)*sin(q1(1)), x-d1(1)-d1(2)*cos(q1(1))) - q1(1);
-            q2(2) = atan2(y-d2(2)*sin(q2(1)), x-d2(1)-d2(2)*cos(q2(1))) - q2(1);
+            A1C = [x;y] - A12;
+            A2C = [x;y] - A22;
+            q1(2) = atan2(A1C(2), A1C(1)) - q1(1);
+            q2(2) = atan2(A2C(2), A2C(1)) - q2(1);
+%             q1(2) = atan2(y-d1(2)*sin(q1(1)), x-d1(2)*cos(q1(1))) - q1(1);
+%             q2(2) = atan2(y-d2(2)*sin(q2(1)), x-d2(2)*cos(q2(1))) - q2(1);
+            if isnan(q1(2)) || isnan(q2(2))
+                q1(2) = 0;
+                q2(2) = 0;
+            end
             q1(3) = q2(1) + q2(2) - q1(1) - q1(2);
             q1_(:,j)= [q1(1); q1(2); q1(3)];
             q2_(:,j)= [q2(1); q2(2)];
@@ -67,7 +82,7 @@ arm1.base = transl(d1(1), 0, 0);
 arm2 = SerialLink(DH2, 'name', 'arm2');
 arm2.base = transl(d2(1), 0, 0);
 if show_robot_move
-    for i=1:length(q1_)
+    for i=1:10:length(q1_)
         arm1.plot(q1_(:,i)')
         hold on;
         arm2.plot([q2_(:,i)',0])
