@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-# import os
+import os
 
 # Table 7.1 The MDH parameters of the five-bar legs
 # ij a(ij) μ_ij σ_ij γ_ij b_ij α_ij d_ij θ_ij r_ij
@@ -54,8 +54,8 @@ class FiveBar(object):
 
     def __init__(
         self,
-        d1: np.ndarray = np.array([0., .23, .35]),
-        d2: np.ndarray = np.array([0., .23, .35])
+        d1: np.ndarray = np.array([0., .25, .38]),
+        d2: np.ndarray = np.array([0., .25, .38])
     ) -> None:
         """__init_ method:
 
@@ -75,6 +75,7 @@ class FiveBar(object):
                                  np.deg2rad(220)], [0, 0.5]])
         self.minDistalAngle = np.deg2rad(1)
         self.minProximalAngle = np.deg2rad(1)
+        self.make_video = False
 
     def ikine(self, pose: np.ndarray = 0) -> np.ndarray:
         """ Inverse kinematics. If non parameter is passed the current
@@ -250,65 +251,67 @@ class FiveBar(object):
         # End
         plt.plot(self.endPose[0], self.endPose[1], 'k *')
 
-        plt.axis(0.6 * np.array([-1, 1, -1, 1]))
+        plt.axis(0.7 * np.array([-1, 1, -1, 1]))
         plt.grid(True)
 
     def work_space(self):
-        q1 = np.arange(start=self.jlimit[0, 0],
-                       stop=self.jlimit[0, 1] + 0.1,
+        q1 = np.arange(start=self.jlimit[0, 0] - 0.1,
+                       stop=self.jlimit[0, 1] + 0.2,
                        step=0.1)
         q2 = np.copy(q1)
         max_points = q1.size * q1.size
         p = np.zeros((max_points, 3))
         q = np.zeros((max_points, 3))
         count = 0
-        for q_2 in q2:
-            for q_1 in q1:
+        for q_1 in q1:
+            for q_2 in q2:
                 try:
                     self.fkine(np.array([q_1, q_2, 0.]))
 
                     if self.is_inside_bounds(q_1, q_2):
                         q[count, :] = np.array([q_1, q_2, 0])
                         p[count, :] = self.endPose
-                        # self.showRobot()
-                        # filenumber = count
-                        # filenumber = format(filenumber, "05")
-                        # filename = "image{}.png".format(filenumber)
-                        # plt.savefig(filename)
-                        # plt.close()
+                        if self.make_video:
+                            self.showRobot()
+                            filenumber = count
+                            filenumber = format(filenumber, "05")
+                            filename = "image{}.png".format(filenumber)
+                            plt.savefig(filename)
+                            plt.close()
                         count += 1
                 except RuntimeError:
                     continue
-        # os.system("ffmpeg -f image2 -r 25 -i image%05d.png -vcodec mpeg4 -y \
-        #         workspace.avi")
-        # os.system("rm *.png")
+        if self.make_video:
+            os.system(
+                "ffmpeg -f image2 -r 25 -i image%05d.png -vcodec mpeg4 -y \
+                    workspace.avi")
+            os.system("rm *.png")
 
         plt.figure(1)
         print(count)
         plt.plot(p[:count, 0], p[:count, 1], 'r .')
         rl = self.arms[0].links.sum()
-        plt.plot(rl * np.cos(q1), rl * np.sin(q1), 'k')
-        q3 = np.arange(start=self.jlimit[0, 0],
-                       stop=np.deg2rad(125) + 0.1,
-                       step=0.1)
-        plt.plot(0.35 * np.cos(q3) + 0.23 * np.cos(self.jlimit[0, 0]),
-                 0.35 * np.sin(q3) + 0.23 * np.sin(self.jlimit[0, 0]), 'k')
-        q4 = np.arange(start=np.deg2rad(65),
-                       stop=np.deg2rad(210) + 0.1,
-                       step=0.1)
-        # Find what kind of curve is.
-        plt.plot(0.35 * np.cos(q4) + 0.23 * np.sin(self.jlimit[0, 1]),
-                 0.35 * np.sin(q4) + 0.23 * np.cos(self.jlimit[0, 1]), 'k')
+        plt.plot(rl * np.cos(q1), rl * np.sin(q1), 'k--')
+        q3 = np.arange(start=np.deg2rad(-50), stop=np.deg2rad(125), step=0.1)
+        plt.plot(0.38 * np.cos(q3) + 0.25 * np.cos(self.jlimit[0, 0]),
+                 0.38 * np.sin(q3) + 0.25 * np.sin(self.jlimit[0, 0]), 'k--')
+        q4 = np.arange(start=np.deg2rad(57), stop=np.deg2rad(220), step=0.1)
+        plt.plot(0.38 * np.cos(q4) + 0.25 * np.cos(self.jlimit[0, 1]),
+                 0.38 * np.sin(q4) + 0.25 * np.sin(self.jlimit[0, 1]), 'k--')
+        plt.grid(True)
+        plt.figure(2)
+        plt.plot(np.rad2deg(q[:count, 0]), np.rad2deg(q[:count, 1]), 'b .')
         plt.grid(True)
         plt.show()
         return q
 
 
 def main():
-    l1 = 0.23
-    l2 = 0.35
+    l1 = 0.25
+    l2 = 0.38
     b = 0.0
     five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
+    # print(five.fkine(np.array([np.pi, 0, 0])))
     five.work_space()
 
 
