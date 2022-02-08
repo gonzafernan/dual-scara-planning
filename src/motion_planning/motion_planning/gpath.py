@@ -5,19 +5,13 @@ import matplotlib.pyplot as plt
 
 
 class Path(object):
-    """Docstrings for Path"""
+    """Path class"""
 
     def __init__(self, robot: FiveBar = FiveBar()) -> None:
         self.tl = TimeLaw()
         self.robot = robot
         self.dt = 0.01
         self.tf = 0.
-
-    def right_side(self, q):
-        if abs(q) < np.pi / 2:
-            return True
-        else:
-            return False
 
     def move_from_end(
         self,
@@ -169,12 +163,11 @@ class Path(object):
                 # + counter clockwise
                 dq[i, :] = self.robot.ikine(goals[i + 1, :]) - self.robot.ikine(
                     goals[i, :])
-                tau_, T_ = self.tl.lspb_param(np.max(abs(dq[i, :])), max_v[i],
-                                              max_a[i])
-                tau[i] = tau_
-                T[i] = T_
+                tau[i], T[i] = self.tl.lspb_param(np.max(abs(dq[i, :])),
+                                                  max_v[i], max_a[i])
             self.tf = tau[-1] + T.sum()
             T2 = T[0]
+            dq_next = dq[goal + 1, :]
         else:
             dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
             tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
@@ -184,10 +177,13 @@ class Path(object):
         q = np.zeros((n, 3))
         qd = np.zeros((n, 3))
         qdd = np.zeros((n, 3))
+
+        jstart = self.robot.ikine(goals[0, :])
+
         for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             if goals.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
-                q[i, :] = self.robot.ikine(goals[0, :]) + dq * s
+                q[i, :] = jstart + dq * s
                 qd[i, :] = sd * dq
                 qdd[i, :] = sdd * dq
             else:
@@ -195,14 +191,17 @@ class Path(object):
                 s2, sd2, sdd2 = self.tl.lspb(t=t - T2,
                                              tau=tau[goal + 1],
                                              T=T[goal + 1])
-                q[i, :] = self.robot.ikine(
-                    goals[goal, :]) + dq[goal, :] * s + s2 * dq[goal + 1, :]
-                qd[i, :] = sd * dq[goal, :] + sd2 * dq[goal + 1, :]
-                qdd[i, :] = sdd * dq[goal, :] + sdd2 * dq[goal * 1, :]
+                q[i, :] = jstart + dq[goal, :] * s + s2 * dq_next
+                qd[i, :] = sd * dq[goal, :] + sd2 * dq_next
+                qdd[i, :] = sdd * dq[goal, :] + sdd2 * dq_next
+
                 if s == 1 and goal != last_goal - 2:
                     pre_T = T2
                     goal += 1
                     T2 += T[goal]
+                    jstart = self.robot.ikine(goals[goal, :])
+                    dq_next = dq[goal + 1, :]
+
             p[i, :] = self.robot.fkine(q[i, :])
         pd = np.gradient(p, self.dt, axis=0)
         pdd = np.gradient(pd, self.dt, axis=0)
@@ -248,7 +247,8 @@ class Path(object):
 
     def line_poly(self, start: np.ndarray, goal: np.ndarray,
                   mean_v: float) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """ Lineal interpolation in task space using a quintic polynomic
+        """ Lineal interpolation in task space
+            Interpolation method: quintic polynomic
 
         Args:
             start(np.array): start point 3X1
@@ -283,15 +283,22 @@ class Path(object):
         qdd = np.gradient(qd, self.dt, axis=0)
         return q, qd, qdd, p, pd, pdd
 
-    def line(self, pose: np.ndarray, max_v: np.ndarray,
-             max_a: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def line(
+        self,
+        pose: np.ndarray,
+        max_v: np.ndarray,
+        max_a: np.ndarray,
+        enable_way_point: bool = True
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """ Lineal interpolation in task space
-            Linear segment with parabolic blend
+            Interpolation method: linear segment with parabolic blend
 
         Args:
             pose(np.ndarray): goals positions point nX3
             max_v(np.ndarray): max velocity nX
             max_a(np.ndarray): max acceleration nX
+            enable_way_point(bool): Use each intermediate points like a way
+                point. Default = True
 
         Returns:
             q(np.array): joint position n x 3
@@ -304,52 +311,62 @@ class Path(object):
         if pose.ndim != 2:
             raise ValueError("Error: pose has to be n X 3 (2 dimensions)")
         if pose.shape[0] != 2:
-            last_segment = pose.shape[0] - 1  # Number of segments
+            segment_number = pose.shape[0] - 1
             segment = 0
             pre_T = 0
-            dx = np.zeros((last_segment, 3))
-            tau = np.zeros(last_segment)
-            T = np.zeros(last_segment)
-            for i in range(0, last_segment):
+            dx = np.zeros((segment_number, 3))
+            tau = np.zeros(segment_number)
+            T = np.zeros(segment_number)
+            for i in range(0, segment_number):
                 dx[i, :] = pose[i + 1, :] - pose[i, :]
-                tau_, T_ = self.tl.lspb_param(np.max(abs(dx[i, :])), max_v[i],
-                                              max_a[i])
-                tau[i] = tau_
-                T[i] = T_
-            self.tf = tau[-1] + T.sum()
-            T2 = T[0]
+                tau[i], T[i] = self.tl.lspb_param(np.max(abs(dx[i, :])),
+                                                  max_v[i], max_a[i])
+            if enable_way_point:
+                last_segment = segment_number - 2
+                T2 = T[0]
+                self.tf = tau[-1] + T.sum()
+            else:
+                last_segment = segment_number - 1
+                T2 = T[0] + tau[0]
+                self.tf = tau.sum() + T.sum()
         else:
             dx = pose[1, :] - pose[0, :]
             tau, T = self.tl.lspb_param(np.max(dx), max_v, max_a)
             self.tf = tau + T
+
         n = round(self.tf / self.dt) + 1
         q = np.zeros((n, 3))
         p = np.zeros((n, 3))
         pd = np.zeros((n, 3))
         pdd = np.zeros((n, 3))
+        next_dx = np.zeros((1, 3))
+
         for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
-            if i == n:
-                break
             if pose.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
                 p[i, :] = pose[0, :] + s * dx
                 pd[i, :] = sd * dx
                 pdd[i, :] = sdd * dx
             else:
+                if enable_way_point:
+                    s2, sd2, sdd2 = self.tl.lspb(t=t - T2,
+                                                 tau=tau[segment + 1],
+                                                 T=T[segment + 1])
+                    next_dx = dx[segment + 1, :]
+                else:
+                    s2, sd2, sdd2 = (0, 0, 0)
+
                 s, sd, sdd = self.tl.lspb(t=t - pre_T,
                                           tau=tau[segment],
                                           T=T[segment])
-                s2, sd2, sdd2 = self.tl.lspb(t=t - T2,
-                                             tau=tau[segment + 1],
-                                             T=T[segment + 1])
-                p[i, :] = pose[
-                    segment, :] + s * dx[segment, :] + s2 * dx[segment + 1, :]
-                pd[i, :] = sd * dx[segment, :] + sd2 * dx[segment + 1, :]
-                pdd[i, :] = sdd * dx[segment, :] + sdd2 * dx[segment + 1, :]
-                if s == 1 and segment != last_segment - 2:
+                p[i, :] = pose[segment, :] + s * dx[segment, :] + s2 * next_dx
+                pd[i, :] = sd * dx[segment, :] + sd2 * next_dx
+                pdd[i, :] = sdd * dx[segment, :] + sdd2 * next_dx
+                if s == 1 and segment != last_segment:
                     pre_T = T2
                     segment += 1
-                    T2 += T[segment]
+                    T2 += T[segment] if enable_way_point else T[segment] + tau[
+                        segment]
 
             q[i, :] = self.robot.ikine(p[i, :])
         qd = np.gradient(q, self.dt, axis=0)
@@ -443,20 +460,23 @@ class Path(object):
 if __name__ == '__main__':
     path = Path()
     # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
-    path.robot.endPose = np.array([0., 0.3, 0.])
-    q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
+    # path.robot.endPose = np.array([0., 0.3, 0.])
+    # q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
     # st = np.array([-0.5, 0.5, 0.])
     # gl = np.array([0.0, 0.35, 0.3])
-    # pose = np.array([[-0.5, 0.0, 0.], [0.0, 0.5, 0.], [0.4, 0.0, 0.],
-    #                  [0.0, 0.4, 0.0], [-0.4, 0., 0.0], [0.0, 0.3, 0.0],
-    #                  [0.3, 0.0, 0.0], [0., 0.2, 0.0], [-0.2, 0., 0.0],
-    #                  [-0.1, 0.1, 0.]])
-    # max_v = np.array([0.05 for i in range(0, 9)])
-    # max_a = np.array([0.1 for i in range(0, 9)])
+    pose = np.array([[-0.6, 0.1, 0.], [0.0, 0.6, 0.], [0.6, 0.1, 0.],
+                     [0.0, 0.5, 0.0], [-0.5, 0.2, 0.0], [0.0, 0.4, 0.0],
+                     [0.5, 0.2, 0.0], [0., 0.3, 0.0], [-0.4, 0.2, 0.0],
+                     [0., 0.25, 0.]])
+    max_v = np.array([0.1 for i in range(0, 9)])
+    max_a = np.array([0.1 for i in range(0, 9)])
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=st, goal=gl, mean_v=5)
-    # q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
+    # q, qd, qdd, p, pd, pdd = path.line(pose=pose,
+    #                                    max_v=max_v,
+    #                                    max_a=max_a,
+    #                                    enable_way_point=True)
     # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=st, goal=gl, mean_v=0.5)
-    # q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
+    q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
 
     path.plot_joint(q, qd, qdd)
     path.plot_task(p, pd, pdd)
