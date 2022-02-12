@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
-import sys
-
-sys.path.append('/home/jere/Documentos/five-bar-robot/src/' +
-                'motion_planning/motion_planning')  # noqa
-import fivebar as fb  # noqa
+import fivebar as fb
 
 
 @pytest.fixture

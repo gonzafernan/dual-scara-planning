@@ -12,6 +12,13 @@ Then after clone this repository
 ``` bash
 pre-commit install
 ```
+## Install motion planning
+```bash
+cd src/motion_planning
+python setup.py bdist_wheel sdist
+pip install -e .[dev]
+```
+
 ### Notes
 I suggest a project layout like:
 

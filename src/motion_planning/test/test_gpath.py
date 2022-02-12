@@ -1,10 +1,6 @@
 import numpy as np
 import pytest
-import sys
-
-sys.path.append('/home/jere/Documentos/five-bar-robot/src/' +
-                'motion_planning/motion_planning')  # noqa
-import gpath as gp  # noqa
+import gpath as gp
 
 
 @pytest.fixture
