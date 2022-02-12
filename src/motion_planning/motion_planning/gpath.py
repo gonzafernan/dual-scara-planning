@@ -13,6 +13,14 @@ class Path(object):
         self.dt = 0.01
         self.tf = 0.
 
+    class circle_data():
+
+        def __init__(self, center, radius, start, delta) -> None:
+            self.center = center
+            self.radius = radius
+            self.start = start
+            self.delta = delta
+
     def move_from_end(
         self,
         goal: np.ndarray = np.array([0.0, 0., 0.]),
@@ -138,7 +146,7 @@ class Path(object):
         return np.zeros((n, 3)), np.zeros((n, 3)), np.zeros((n, 3)), np.zeros(
             (n, 3))
 
-    def update_state(self, start, delta_x, s, sd, sdd):
+    def point_interpolation(self, start, delta_x, s, sd, sdd):
         x = start + delta_x * s
         xd = sd * delta_x
         xdd = sdd * delta_x
@@ -151,11 +159,11 @@ class Path(object):
         if enable_way_point:
             s2, sd2, sdd2 = self.tl.lspb(t=t - shift[1], tau=tau[1], T=T[1])
             return next_point, np.add(
-                self.update_state(start, delta_p[0, :], s, sd, sdd),
-                self.update_state(0, delta_p[1, :], s2, sd2, sdd2))
+                self.point_interpolation(start, delta_p[0, :], s, sd, sdd),
+                self.point_interpolation(0, delta_p[1, :], s2, sd2, sdd2))
         else:
-            return next_point, self.update_state(start, delta_p[0, :], s, sd,
-                                                 sdd)
+            return next_point, self.point_interpolation(start, delta_p[0, :], s,
+                                                        sd, sdd)
 
     def go_to(
         self,
@@ -219,7 +227,7 @@ class Path(object):
         for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             if goals.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
-                q[i, :], qd[i, :], qdd[i, :] = self.update_state(
+                q[i, :], qd[i, :], qdd[i, :] = self.point_interpolation(
                     jstart, dq, s, sd, sdd)
             else:
                 next_point, [q[i, :], qd[i, :],
@@ -272,7 +280,7 @@ class Path(object):
         for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             s, sd, sdd = self.tl.poly(t, a)
 
-            q[i, :], qd[i, :], qdd[i, :] = self.update_state(
+            q[i, :], qd[i, :], qdd[i, :] = self.point_interpolation(
                 jstart, dq, s, sd, sdd)
             p[i, :] = self.robot.fkine(q[i, :])
         pd = np.gradient(p, self.dt, axis=0)
@@ -310,7 +318,7 @@ class Path(object):
             if i == n:
                 break
             s, sd, sdd = self.tl.poly(t, a)
-            p[i, :], pd[i, :], pdd[i, :] = self.update_state(
+            p[i, :], pd[i, :], pdd[i, :] = self.point_interpolation(
                 start, goal - start, s, sd, sdd)
             q[i, :] = self.robot.ikine(p[i, :])
         qd = np.gradient(q, self.dt, axis=0)
@@ -374,7 +382,7 @@ class Path(object):
         for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
             if pose.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
-                p[i, :], pd[i, :], pdd[i, :] = self.update_state(
+                p[i, :], pd[i, :], pdd[i, :] = self.point_interpolation(
                     pose[0, :], dx, s, sd, sdd)
             else:
                 next_point, [p[i, :], pd[i, :],
@@ -393,6 +401,113 @@ class Path(object):
         qd = np.gradient(q, self.dt, axis=0)
         qdd = np.gradient(qd, self.dt, axis=0)
         return q, qd, qdd, p, pd, pdd
+
+    def transform_angle(self, angle):
+        if angle <= -np.pi / 2:
+            return angle % (2 * np.pi)
+        return angle
+
+    # TODO: Revisar velocidad y aceleración del circulo.
+    def circular_path(self, arc_length, radius):
+        circle = radius * np.array(
+            [np.cos(arc_length / radius),
+             np.sin(arc_length / radius), 0])
+        circle_dot = np.array(
+            [-np.sin(arc_length / radius),
+             np.cos(arc_length / radius), 0])
+        circle_dot_dot = np.array([
+            -np.cos(arc_length / radius), -np.sin(arc_length / radius), 0
+        ]) / radius
+        return circle, circle_dot, circle_dot_dot
+
+    def circle_interpolation(self, circle_data, max_vel, max_acc):
+        tau, T = self.tl.lspb_param(np.max(abs(circle_data.delta)), max_vel,
+                                    max_acc)
+        self.tf = tau + T
+
+        n = round(self.tf / self.dt) + 1
+        joints, poses, velocities, accelerations = self.initialize(n)
+        time = np.linspace(start=0, stop=self.tf, num=n)
+
+        for i, t in enumerate(time):
+            s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
+            arc_length, arc_length_d, arc_length_dd = self.point_interpolation(
+                circle_data.start, circle_data.delta, s, sd, sdd)
+            circle, circle_dot, circle_dot_dot = self.circular_path(
+                arc_length, circle_data.radius)
+            poses[i, :] = circle_data.center + circle
+            velocities[i, :] = arc_length_d * circle_dot
+            accelerations[i, :] = arc_length_dd * circle_dot + \
+                arc_length_d**2 * circle_dot_dot
+            joints[i, :] = self.robot.ikine(poses[i, :])
+        joints_vel = np.gradient(joints, self.dt, axis=0)
+        joints_acc = np.gradient(joints_vel, self.dt, axis=0)
+        return joints, joints_vel, joints_acc, poses, velocities, accelerations
+
+    def arc(self, start, way_point, goal, max_vel, max_acc):
+        """ Arc in task space
+            Interpolation method: linear segment with parabolic blend
+
+        Args:
+            start(np.ndarray): start point 1X3
+            way_point(np.ndarray): way point 1X3
+            goal(np.ndarray): goal point 1X3
+            max_v(float): max velocity
+            max_a(float): max acceleration
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+        x, y, z = complex(start[0], start[1]), complex(way_point[0],
+                                                       way_point[1]), complex(
+                                                           goal[0], goal[1])
+        w = (z - x) / (y - x)
+        c = (x - y) * (w - abs(w)**2) / 2j / w.imag - x
+        center = np.array([-c.real, -c.imag, 0.])
+        radius = abs(c + x)
+
+        center2start = start - center
+        center2goal = goal - center
+        arc_length_start = radius * self.transform_angle(
+            np.arctan2(center2start[1], center2start[0]))
+        arc_length_goal = radius * self.transform_angle(
+            np.arctan2(center2goal[1], center2goal[0]))
+        delta_arc_length = arc_length_goal - arc_length_start
+        circle = self.circle_data(center, radius, arc_length_start,
+                                  delta_arc_length)
+        return self.circle_interpolation(circle, max_vel, max_acc)
+
+    def circle(self, start, center, max_vel, max_acc):
+        """ Circle in task space
+            Interpolation method: linear segment with parabolic blend
+
+        Args:
+            start(np.ndarray): start point 1X3
+            center(np.ndarray): circle center point 1X3
+            max_v(float): max velocity
+            max_a(float): max acceleration nX
+
+        Returns:
+            q(np.array): joint position n x 3
+            qd(np.array): joint velocity n x 3
+            qdd(np.array): joint acceleration n x 3
+            p(np.array): task position n x 3
+            pd(np.array): task velocity n x 3
+            pdd(np.array): task acceleration n x 3
+        """
+        center2start = start - center
+        radius = np.linalg.norm(center2start)
+        arc_length_start = np.arctan2(center2start[1], center2start[0]) * radius
+
+        delta_arc_length = 2 * np.pi * radius
+        circle = self.circle_data(center, radius, arc_length_start,
+                                  delta_arc_length)
+        return self.circle_interpolation(circle, max_vel, max_acc)
 
     def plot_joint(self, q: np.ndarray, qd: np.ndarray,
                    qdd: np.ndarray) -> None:
@@ -483,17 +598,24 @@ class Path(object):
 
 if __name__ == '__main__':
     path = Path()
+    # ARC
+    # q, qd, qdd, p, pd, pdd = path.arc(np.array([0.0, 0.45, 0]),
+    #                                   np.array([0.1, 0.5, 0]),
+    #                                   np.array([0.2, 0.52, 0]), 0.5, 1)
+    # CIRCLE
+    q, qd, qdd, p, pd, pdd = path.circle(np.array([0.1, 0.45, 0]),
+                                         np.array([0., 0.45, 0]), 0.1, 1)
     # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
     # path.robot.endPose = np.array([0., 0.3, 0.])
     # q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
     # st = np.array([-0.5, 0.5, 0.])
     # gl = np.array([0.0, 0.35, 0.3])
-    pose = np.array([[-0.6, 0.1, 0.], [0.0, 0.6, 0.], [0.6, 0.1, 0.],
-                     [0.0, 0.5, 0.0], [-0.5, 0.2, 0.0], [0.0, 0.4, 0.0],
-                     [0.5, 0.2, 0.0], [0., 0.3, 0.0], [-0.4, 0.2, 0.0],
-                     [0., 0.25, 0.]])
-    max_v = np.array([0.1 for i in range(0, 9)])
-    max_a = np.array([0.1 for i in range(0, 9)])
+    # pose = np.array([[-0.6, 0.1, 0.], [0.0, 0.6, 0.], [0.6, 0.1, 0.],
+    #                  [0.0, 0.5, 0.0], [-0.5, 0.2, 0.0], [0.0, 0.4, 0.0],
+    #                  [0.5, 0.2, 0.0], [0., 0.3, 0.0], [-0.4, 0.2, 0.0],
+    #                  [0., 0.25, 0.]])
+    # max_v = np.array([0.1 for i in range(0, 9)])
+    # max_a = np.array([0.1 for i in range(0, 9)])
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=pose[0, :],
     #                                         goal=pose[1, :],
     #                                         mean_v=5)
@@ -504,14 +626,13 @@ if __name__ == '__main__':
     # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=pose[0, :],
     #                                          goal=pose[1, :],
     #                                          mean_v=0.5)
-    q, qd, qdd, p, pd, pdd = path.go_to(goals=pose,
-                                        max_v=max_v,
-                                        max_a=max_a,
-                                        way_point=False)
+    # q, qd, qdd, p, pd, pdd = path.go_to(goals=pose,
+    #                                     max_v=max_v,
+    #                                     max_a=max_a,
+    #                                     way_point=False)
 
     path.plot_joint(q, qd, qdd)
     path.plot_task(p, pd, pdd)
     plt.figure(3)
     plt.plot(p[:, 0], p[:, 1], 'r')
-
     plt.show()
