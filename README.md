@@ -12,7 +12,12 @@ Then after clone this repository
 ``` bash
 pre-commit install
 ```
-## Install motion planning
+## Install
+```bash
+cd src/motion_planning
+pip install -e .[dev]
+```
+## Create package
 ```bash
 cd src/motion_planning
 python setup.py bdist_wheel sdist

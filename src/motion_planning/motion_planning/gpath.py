@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 
 class Path(object):
-    """Path class"""
+    """ Path class """
 
     def __init__(self, robot: FiveBar = FiveBar()) -> None:
         self.tl = TimeLaw()
@@ -28,7 +28,7 @@ class Path(object):
         max_a: float = 0.5
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Move relative to end effector frame in task space.
+        """ Move relative to end effector frame in task space. \
             Linear segment with parabolic blend
 
         Args:
@@ -37,12 +37,19 @@ class Path(object):
             max_a(np.ndarray): max acceleration
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
 
         start = self.robot.endPose
@@ -57,7 +64,7 @@ class Path(object):
         max_a: float = 0.5
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Move relative to end effector frame, x direcction in task space.
+        """ Move relative to end effector frame, x direction in task space. \
             Linear segment with parabolic blend
 
         Args:
@@ -66,12 +73,19 @@ class Path(object):
             max_a(float): max acceleration
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
 
         start = self.robot.endPose
@@ -87,7 +101,7 @@ class Path(object):
         max_a: float = 0.5
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Move relative to end effector frame, y direcction in task space.
+        """ Move relative to end effector frame, y direction in task space. \
             Linear segment with parabolic blend
 
         Args:
@@ -96,12 +110,19 @@ class Path(object):
             max_a(float): max acceleration
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
 
         start = self.robot.endPose
@@ -117,7 +138,7 @@ class Path(object):
         max_a: float = 0.5
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Move relative to end effector frame, z direcction in task space.
+        """ Move relative to end effector frame, z direction in task space. \
             Linear segment with parabolic blend
 
         Args:
@@ -126,12 +147,19 @@ class Path(object):
             max_a(float): max acceleration
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
 
         start = self.robot.endPose
@@ -143,10 +171,40 @@ class Path(object):
     def initialize(
             self,
             n: int) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """ Initialize 4 matrix nX3 with zeros
+
+        Args:
+            n(int): number of elements
+
+        Returns:
+            A tuple with the 4 matrix nX3
+        """
         return np.zeros((n, 3)), np.zeros((n, 3)), np.zeros((n, 3)), np.zeros(
             (n, 3))
 
     def point_interpolation(self, start, delta_x, s, sd, sdd):
+        """ Auxiliary method: Line interpolation from start upto start + delta_x. \
+            This function return a point, its velocity and its acceleration\
+            along the path.
+
+        Args:
+            start: start point
+            delta_x: distance to interpolate
+            s: s variable used for getting the position across the path
+            sd: s derivative variable used for getting the velocity \
+            across the path
+            sdd: sd derivative used for getting the acceleration across the path
+
+        Returns:
+            A tuple containing, respectively
+
+            x pose across the path
+
+            xd velocity across the path
+
+            xdd acceleration across the path
+        """
+
         x = start + delta_x * s
         xd = sd * delta_x
         xdd = sdd * delta_x
@@ -154,6 +212,30 @@ class Path(object):
 
     def multi_point_interpolation(self, start, delta_p, t, tau, T, shift,
                                   enable_way_point):
+        """ Auxiliary method: line interpolation from start upto \
+        start + delta_p. Going through many points
+
+        Args:
+            start: start point
+            delta_p: distance to interpolate
+            t: current time
+            tau: acceleration time
+            T: deceleration time
+            shift: time in which the current segment start
+            enable_way_point: flag for use all the intermediate points \
+            as way points
+
+        Returns:
+            A tuple containing, respectively
+
+            next_point true when the segment interpolation has finished
+
+            x pose across the path
+
+            xd velocity across the path
+
+            xdd acceleration across the path
+        """
         s, sd, sdd = self.tl.lspb(t=t - shift[0], tau=tau[0], T=T[0])
         next_point = True if s == 1 else False
         if enable_way_point:
@@ -173,23 +255,29 @@ class Path(object):
         way_point: bool = True
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Go to goal with linear segment with parabolic blend in joint
-            space
+        """ Go to goal with linear segment with parabolic blend in joint space
 
         Args:
             goal(np.ndarray): goal point 3X
             max_v(np.ndarray): max velocity
             max_a(np.ndarray): max acceleration
-            way_point(bool): enable use internal point like way points.
-                Default = True
+            way_point(bool): enable use internal point like way points.\
+            Default = True
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         if goals.ndim != 2:
             raise ValueError("Error: goals has to be n X 3 (2 dimensions)")
@@ -261,12 +349,19 @@ class Path(object):
             mean_v(float): mean velocity in joint space
 
         Returns:
-            q(np.array): joints position n x 3
-            qd(np.array): joints velocity n x 3
-            qdd(np.array): joints acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         jstart = self.robot.ikine(start)
         jgoal = self.robot.ikine(goal)
@@ -291,8 +386,8 @@ class Path(object):
         self, start: np.ndarray, goal: np.ndarray, mean_v: float
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray,
                np.ndarray]:
-        """ Lineal interpolation in task space
-            Interpolation method: quintic polynomic
+        """ Lineal interpolation in task space \
+            Interpolation method: quintic polynomial
 
         Args:
             start(np.array): start point 3X1
@@ -300,12 +395,19 @@ class Path(object):
             mean_v(float): mean velocity
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         self.tf = self.dt * np.ceil(
             np.max(abs(goal - start) / mean_v) / self.dt)
@@ -332,23 +434,30 @@ class Path(object):
         max_a: np.ndarray,
         enable_way_point: bool = True
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """ Lineal interpolation in task space
+        """ Lineal interpolation in task space \
             Interpolation method: linear segment with parabolic blend
 
         Args:
             pose(np.ndarray): goals positions point nX3
             max_v(np.ndarray): max velocity nX
             max_a(np.ndarray): max acceleration nX
-            enable_way_point(bool): Use each intermediate points like a way
-                point. Default = True
+            enable_way_point(bool): Use each intermediate points like a way \
+            point. Default = True
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         if pose.ndim != 2:
             raise ValueError("Error: pose has to be n X 3 (2 dimensions)")
@@ -445,7 +554,7 @@ class Path(object):
         return joints, joints_vel, joints_acc, poses, velocities, accelerations
 
     def arc(self, start, way_point, goal, max_vel, max_acc):
-        """ Arc in task space
+        """ Arc in task space \
             Interpolation method: linear segment with parabolic blend
 
         Args:
@@ -456,12 +565,19 @@ class Path(object):
             max_a(float): max acceleration
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         x, y, z = complex(start[0], start[1]), complex(way_point[0],
                                                        way_point[1]), complex(
@@ -483,7 +599,7 @@ class Path(object):
         return self.circle_interpolation(circle, max_vel, max_acc)
 
     def circle(self, start, center, max_vel, max_acc):
-        """ Circle in task space
+        """ Circle in task space \
             Interpolation method: linear segment with parabolic blend
 
         Args:
@@ -493,12 +609,19 @@ class Path(object):
             max_a(float): max acceleration nX
 
         Returns:
-            q(np.array): joint position n x 3
-            qd(np.array): joint velocity n x 3
-            qdd(np.array): joint acceleration n x 3
-            p(np.array): task position n x 3
-            pd(np.array): task velocity n x 3
-            pdd(np.array): task acceleration n x 3
+            A tuple containing, respectively
+
+            q (np.array) joint position n x 3.
+
+            qd (np.array) joint velocity n x 3.
+
+            qdd (np.array) joint acceleration n x 3.
+
+            p (np.array) task position n x 3.
+
+            pd (np.array) task velocity n x 3.
+
+            pdd (np.array) task acceleration n x 3.
         """
         center2start = start - center
         radius = np.linalg.norm(center2start)

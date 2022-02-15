@@ -14,13 +14,13 @@ import os
 
 
 class Arm(object):
-    """ This class contain the representation o a 2 dof plannar robotic arm
+    """ This class contain the representation o a 2 dof planar robotic arm
 
     Attributes:
         links (np.ndarray): 2X1 proximal and distal link length.
         working (int): Current working mode of the arm.
         base (double): distance form the origin to the base of the arm.
-        rOA (np.ndarray): 2x1 point in task space that represent the union
+        rOA (np.ndarray): 2x1 point in task space that represent the union \
         between the proximal and distal links.
 
     """
@@ -28,7 +28,7 @@ class Arm(object):
     def __init__(self, d: np.ndarray, wkMode: int) -> None:
         """__init_ method:
 
-        Arg:
+        Args:
             d (np.ndarray): 3X1 d column of MDH array
             wkMode (int): Current working mode of the arm.
 
@@ -40,13 +40,13 @@ class Arm(object):
 
 
 class FiveBar(object):
-    """ This class implement a model of a five bars robot also know as
-    scara parallel robot. Units are in meters [m] and radians [rad].
+    """ This class implement a model of a five bars robot also know as \
+        scara parallel robot. Units are in meters [m] and radians [rad].
 
-    Atributtes:
-        arms (list(Arm)): 2X1 list that cointain the 2 dof arms.
-        endEff (np.ndarray): 3X1 vector that represent the
-            end effector pose [x,y,z].
+    Attributes:
+        arms (list(Arm)): 2X1 list that contain the 2 dof arms.
+        endEff (np.ndarray): 3X1 vector that represent the \
+        end effector pose [x,y,z].
         assembly (int): Current assembly mode.
         joints (np.ndarray): joints position in radians
 
@@ -57,9 +57,9 @@ class FiveBar(object):
         d1: np.ndarray = np.array([0., .25, .38]),
         d2: np.ndarray = np.array([0., .25, .38])
     ) -> None:
-        """__init_ method:
+        """ __init_ method:
 
-        Arg:
+        Args:
             d1 (np.ndarray): 3X1 d column of MDH array
             d2 (np.ndarray): 3X1 d column of MDH array
 
@@ -77,17 +77,58 @@ class FiveBar(object):
         self.minProximalAngle = np.deg2rad(1)
         self.make_video = False
 
+    def transform_angle(self, q1, q2):
+        """ Normalize angles q1 and q2 """
+        if q1 <= -np.pi / 2:
+            q1 = q1 % (2 * np.pi)
+        if q2 <= -np.pi / 2:
+            q2 = q2 % (2 * np.pi)
+        return q1, q2
+
+    def are_distals_ok(self):
+        end2r1 = self.arms[0].rOA - self.endPose[:2]
+        end2r1 /= np.linalg.norm(end2r1)
+        end2r2 = self.arms[1].rOA - self.endPose[:2]
+        end2r2 /= np.linalg.norm(end2r2)
+        dot_product = np.dot(end2r1, end2r2)
+        return abs(np.arccos(dot_product)) >= self.minDistalAngle
+
+    def are_proximals_ok(self, q1, q2):
+        if q1 > q2:
+            angle = q1 - q2
+            if angle >= self.minProximalAngle:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+    def are_inside_limits(self, q1, q2):
+        return (q1 >= self.jlimit[0, 0] and
+                q1 <= self.jlimit[0, 1]) and (q2 >= self.jlimit[1, 0] and
+                                              q2 <= self.jlimit[1, 1])
+
+    def is_inside_bounds(self, q1, q2):
+        q1, q2 = self.transform_angle(q1, q2)
+        if not self.are_distals_ok():
+            print("distal")
+        if not self.are_proximals_ok(q1, q2):
+            print("proximal")
+        if not self.are_inside_limits(q1, q2):
+            print("Limits")
+        return self.are_distals_ok() and self.are_proximals_ok(
+            q1, q2) and self.are_inside_limits(q1, q2)
+
     def ikine(self, pose: np.ndarray = 0) -> np.ndarray:
-        """ Inverse kinematics. If non parameter is passed the current
-        position of the robot
+        """ Five Bar inverse kinematics. If non parameter is passed the current \
+            position of the robot
 
-        Arg:
-            pose (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
+        Args:
+            pose (np.ndarray): 3x1 vector. Desire end effector pose [x, y, z]
 
-
-        Retrun:
-            q (np.ndarray): 3X1 vector. Joint position for achive dessire pose
-                [q1, q2, d3]
+        Returns:
+            np.ndarray: q 3X1 vector. Joint position for achieve desire pose \
+            [q1, q2, d3]
 
         """
         joints = np.zeros(3)
@@ -131,14 +172,15 @@ class FiveBar(object):
             # exit()
 
     def fkine(self, joint: np.ndarray = 0) -> np.ndarray:
-        """ Forward kinematics
+        """ Five Bar forward kinematics. If non parameter is passed the current \
+            position of the robot
 
-        Arg:
-            q (np.ndarray): 3X1 vector. Joint position for achive dessire pose
-                [q1, q2, d3]
+        Args:
+            q (np.ndarray): 3X1 vector. Joint position for achieve desire pose \
+            [q1, q2, d3]
 
-        Retrun:
-            p (np.ndarray): 3x1 vector. Dessire end effector pose [x, y, z]
+        Returns:
+            np.ndarray: p 3x1 vector. Desire end effector pose [x, y, z]
 
         """
         if isinstance(joint, int):
@@ -178,50 +220,8 @@ class FiveBar(object):
             print(f'Imposible to solve forward kinematic for joints: {q}')
             exit()
 
-    def transform_angle(self, q1, q2):
-        if q1 <= -np.pi / 2:
-            q1 = q1 % (2 * np.pi)
-        if q2 <= -np.pi / 2:
-            q2 = q2 % (2 * np.pi)
-        return q1, q2
-
-    def are_distals_ok(self):
-        end2r1 = self.arms[0].rOA - self.endPose[:2]
-        end2r1 /= np.linalg.norm(end2r1)
-        end2r2 = self.arms[1].rOA - self.endPose[:2]
-        end2r2 /= np.linalg.norm(end2r2)
-        dot_product = np.dot(end2r1, end2r2)
-        return abs(np.arccos(dot_product)) >= self.minDistalAngle
-
-    def are_proximals_ok(self, q1, q2):
-        if q1 > q2:
-            angle = q1 - q2
-            if angle >= self.minProximalAngle:
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def are_inside_limits(self, q1, q2):
-        return (q1 >= self.jlimit[0, 0] and
-                q1 <= self.jlimit[0, 1]) and (q2 >= self.jlimit[1, 0] and
-                                              q2 <= self.jlimit[1, 1])
-
-    def is_inside_bounds(self, q1, q2):
-        q1, q2 = self.transform_angle(q1, q2)
-        if not self.are_distals_ok():
-            print("distal")
-        if not self.are_proximals_ok(q1, q2):
-            print("proximal")
-        if not self.are_inside_limits(q1, q2):
-            print("Limits")
-        return self.are_distals_ok() and self.are_proximals_ok(
-            q1, q2) and self.are_inside_limits(q1, q2)
-
     def showRobot(self):
         """ Show robot with numpy
-
         """
         # Link 11
         l11_x = [self.arms[0].base[0], self.arms[0].rOA[0]]

@@ -78,7 +78,7 @@ def test_sdd(data):
     assert np.round(maxa, decimals=4) == np.round(1.0 / (tau_ * T_), decimals=4)
 
 
-def test_polynomic_law(data):
+def test_polynomial_law(data):
     law = tl.TimeLaw()
     a = law.poly_coeff(qi=0.0, qf=1.0, vi=0.0, vf=0.0, ai=0.0, af=0.0)
     coeff = np.array([[0.], [0.], [0.], [10.], [-15.], [6.]])
