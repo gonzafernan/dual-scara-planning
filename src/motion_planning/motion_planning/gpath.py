@@ -2,6 +2,9 @@ from timelaw import TimeLaw
 from fivebar import FiveBar
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas
+from os.path import dirname, abspath
+import os
 
 
 class Path(object):
@@ -632,6 +635,33 @@ class Path(object):
                                   delta_arc_length)
         return self.circle_interpolation(circle, max_vel, max_acc)
 
+    def normalize_trajectory(self, trajectory, factor):
+        return np.array(trajectory * factor, dtype=np.int16)
+
+    def export_trajectory(self, vector, path, name="trajectory.csv"):
+        """ Export pose to a csv
+
+        Args:
+            pose(np.ndarray): nx3 with positions, velocities or acceleration
+
+            path : path to a directory where the file will be saved
+
+            name : name of the file, must contain the extension .csv. \
+            Default trajectory.csv
+        """
+        n = max(vector.shape)
+        time = np.linspace(start=0, stop=self.tf, num=n)
+        data = {
+            'q1': vector[:, 0],
+            'q2': vector[:, 1],
+            'z': vector[:, 1],
+            'timestamp': time
+        }
+        df = pandas.DataFrame(data)
+        os.makedirs(path, exist_ok=True)
+        path += '/' + name
+        df.to_csv(path_or_buf=path, index=False)
+
     def plot_joint(self, q: np.ndarray, qd: np.ndarray,
                    qdd: np.ndarray) -> None:
         """ Plot joints values
@@ -720,14 +750,14 @@ class Path(object):
 
 
 if __name__ == '__main__':
-    path = Path()
+    gpath = Path()
     # ARC
     # q, qd, qdd, p, pd, pdd = path.arc(np.array([0.0, 0.45, 0]),
     #                                   np.array([0.1, 0.5, 0]),
     #                                   np.array([0.2, 0.52, 0]), 0.5, 1)
     # CIRCLE
-    q, qd, qdd, p, pd, pdd = path.circle(np.array([0.1, 0.45, 0]),
-                                         np.array([0., 0.45, 0]), 0.1, 1)
+    q, qd, qdd, p, pd, pdd = gpath.circle(np.array([0.1, 0.45, 0]),
+                                          np.array([0., 0.45, 0]), 0.1, 1)
     # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
     # path.robot.endPose = np.array([0., 0.3, 0.])
     # q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
@@ -754,8 +784,19 @@ if __name__ == '__main__':
     #                                     max_a=max_a,
     #                                     way_point=False)
 
-    path.plot_joint(q, qd, qdd)
-    path.plot_task(p, pd, pdd)
-    plt.figure(3)
-    plt.plot(p[:, 0], p[:, 1], 'r')
-    plt.show()
+    D = 3  # Diametro mayor
+    d = 1  # diametro menor
+    i = D / d  # relacion de transmision
+    pasos_rev = 200 / (2 * np.pi)
+    factor = i * pasos_rev
+    q = gpath.normalize_trajectory(q, factor)
+
+    trj_path = dirname(dirname(abspath(__file__)))
+    trj_path += '/trajectories'
+    name = 'trajectory.csv'
+    gpath.export_trajectory(q, trj_path, name)
+    # path.plot_joint(q, qd, qdd)
+    # path.plot_task(p, pd, pdd)
+    # plt.figure(3)
+    # plt.plot(p[:, 0], p[:, 1], 'r')
+    # plt.show()
