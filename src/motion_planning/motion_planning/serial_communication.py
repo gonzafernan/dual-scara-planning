@@ -6,7 +6,6 @@ from os.path import dirname, abspath
 
 # TODO: Definir como es la trama [:p q1 q2] o [:p q1 .. q2 ..]
 # TODO: En base a lo anteriror modificar int2hex
-# TODO: Test serial port
 def encode_trajectory(points):
     tra_hex = ''
     for point in points:

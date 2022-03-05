@@ -83,7 +83,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: s(t) value.
+            float s(t) value.
         """
         a = 1 / (T * tau)
         v = 1 / T
@@ -112,7 +112,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: sd(t) value.
+            float sd(t) value.
         """
         a = 1 / (T * tau)
         v = 1 / T
@@ -138,7 +138,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: sdd(t) value.
+            float sdd(t) value.
         """
         a = 1 / (T * tau)
         if t <= 0:
@@ -195,14 +195,14 @@ class TimeLaw(object):
         Args:
             qi (float): initial pose
             qf (float): final pose
-            T (float): final time. Default to 1.
+            tf (float): final time. Default to 1.
             vi (float, optional): initial velocity. Default to 0
             vf (float, optional): final velocity. Default to 0
             ai (float, optional): initial acceleration. Default to 0
             af (float, optional): final acceleration. Default to 0
 
         Returns:
-            np.ndarray: coefficients [a0, a1, a2, a3, a4, a5]
+            np.ndarray coefficients [a0, a1, a2, a3, a4, a5]
         """
 
         M = np.array([[1.0, 0, 0, 0, 0, 0], [0, 1.0, 0, 0, 0, 0],
