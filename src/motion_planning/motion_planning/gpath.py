@@ -723,8 +723,8 @@ class Path(object):
         fig.suptitle("Task space")
         ax = fig.add_subplot(4, 1, 1, projection='3d')
         ax.plot(p[:, 0], p[:, 1], zs=p[:, 2])
-        ax.plot(p[0, 0], p[0, 1], 'r*')
-        ax.plot(p[-1, 0], p[-1, 1], 'r*')
+        ax.plot(p[0, 0], p[0, 1], 'r*', zs=p[0, 2])
+        ax.plot(p[-1, 0], p[-1, 1], 'r*', zs=p[-1, 2])
         ax = fig.add_subplot(4, 1, 2)
         ax.grid(True)
         ax.plot(t, p[:, 0], label='$x$')  # noqa
@@ -752,37 +752,52 @@ class Path(object):
 if __name__ == '__main__':
     gpath = Path()
     # ARC
-    # q, qd, qdd, p, pd, pdd = path.arc(np.array([0.0, 0.45, 0]),
-    #                                   np.array([0.1, 0.5, 0]),
-    #                                   np.array([0.2, 0.52, 0]), 0.5, 1)
+    q, qd, qdd, p, pd, pdd = gpath.arc(np.array([0.35, 0.35, 0]),
+                                       np.array([0.346, 0.331, 0]),
+                                       np.array([0.3, 0.3, 0]), 0.5, 1)
     # CIRCLE
-    q, qd, qdd, p, pd, pdd = gpath.circle(np.array([0.1, 0.45, 0]),
-                                          np.array([0., 0.45, 0]), 0.1, 1)
-    # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
+    # st = np.array([0.1, 0.45, 0])
+    # c = np.array([0., 0.45, 0])
+    # q, qd, qdd, p, pd, pdd = gpath.circle(start=st,
+    #                                       center=c,
+    #                                       max_vel=.1,
+    #                                       max_acc=.5)
+
     # path.robot.endPose = np.array([0., 0.3, 0.])
     # q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
-    # st = np.array([-0.5, 0.5, 0.])
-    # gl = np.array([0.0, 0.35, 0.3])
+    # st = np.array([-0.4, 0.4, 0.])
+    # wp = np.array([0.0, 0.55, 0.])
+    # gl = np.array([0.2, 0.4, 0.3])
+    # pose = np.block([[st], [wp], [gl]])
+    # max_v = [0.1, 0.1]
+    # max_a = [0.2, 0.2]
     # pose = np.array([[-0.6, 0.1, 0.], [0.0, 0.6, 0.], [0.6, 0.1, 0.],
     #                  [0.0, 0.5, 0.0], [-0.5, 0.2, 0.0], [0.0, 0.4, 0.0],
     #                  [0.5, 0.2, 0.0], [0., 0.3, 0.0], [-0.4, 0.2, 0.0],
     #                  [0., 0.25, 0.]])
     # max_v = np.array([0.1 for i in range(0, 9)])
     # max_a = np.array([0.1 for i in range(0, 9)])
+    # LINE
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=pose[0, :],
     #                                         goal=pose[1, :],
     #                                         mean_v=5)
-    # q, qd, qdd, p, pd, pdd = path.line(pose=pose,
-    #                                    max_v=max_v,
-    #                                    max_a=max_a,
-    #                                    enable_way_point=False)
+    # LINE
+    # pose = np.array([[0.35, 0.4, 0], [0.35, 0.35, 0]])
+    # max_v = 0.1
+    # max_a = 0.2
+    # q, qd, qdd, p, pd, pdd = gpath.line(pose=pose,
+    #                                        max_v=max_v,
+    #                                        max_a=max_a,
+    #                                        enable_way_point=True)
+    # JOINT
     # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=pose[0, :],
     #                                          goal=pose[1, :],
     #                                          mean_v=0.5)
-    # q, qd, qdd, p, pd, pdd = path.go_to(goals=pose,
-    #                                     max_v=max_v,
-    #                                     max_a=max_a,
-    #                                     way_point=False)
+    # JOINT
+    # q, qd, qdd, p, pd, pdd = gpath.go_to(goals=pose,
+    #                                      max_v=max_v,
+    #                                      max_a=max_a,
+    #                                      way_point=False)
 
     D = 3  # Diametro mayor
     d = 1  # diametro menor
@@ -795,8 +810,9 @@ if __name__ == '__main__':
     trj_path += '/trajectories'
     name = 'trajectory.csv'
     gpath.export_trajectory(q, trj_path, name)
-    # path.plot_joint(q, qd, qdd)
-    # path.plot_task(p, pd, pdd)
-    # plt.figure(3)
-    # plt.plot(p[:, 0], p[:, 1], 'r')
-    # plt.show()
+    gpath.plot_joint(q, qdd, qdd)
+    gpath.plot_task(p, pd, pdd)
+
+    plt.figure(3)
+    plt.plot(p[:, 0], p[:, 1], 'r')
+    plt.show()

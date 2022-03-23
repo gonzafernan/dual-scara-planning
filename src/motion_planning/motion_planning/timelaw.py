@@ -255,30 +255,40 @@ class TimeLaw(object):
 if __name__ == '__main__':
     tl = TimeLaw()
     a = tl.poly_coeff(qi=0.0, qf=1.0)
-    dt = 0.001
-    n = int(1 / dt)
+    dt = 0.01
+    n = int(1 / dt) + 1
+    time_poly = np.linspace(start=0, stop=1, num=n)
     s = np.zeros(n)
     sd = np.zeros(n)
     sdd = np.zeros(n)
-    for i, t in enumerate(np.arange(start=0, stop=1, step=dt)):
+    for i, t in enumerate(time_poly):
         s[i], sd[i], sdd[i] = tl.poly(t, a)
-    tau, T = tl.lspb_param(delta_q=1, max_v=2.5, max_a=10)
+    tau, T = tl.lspb_param(delta_q=1, max_v=1, max_a=2)
     n = int((tau + T) / dt) + 1
+    time_lspb = np.linspace(start=0, stop=tau + T, num=n)
     st = np.zeros(n)
     std = np.zeros(n)
     stdd = np.zeros(n)
-    for i, t in enumerate(np.arange(start=0, stop=dt + tau + T, step=dt)):
+    for i, t in enumerate(time_lspb):
         st[i], std[i], stdd[i] = tl.lspb(t=t, tau=tau, T=T)
-    plt.figure(1)
-    plt.plot(s)
-    plt.plot(sd)
-    plt.plot(sdd)
-    plt.grid(True)
+
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(1, 1, 1)
+    ax1.plot(time_poly, s, label='$s$')
+    ax1.plot(time_poly, sd, label='$\dot{s}$')  # noqa
+    ax1.plot(time_poly, sdd, label='$\ddot{s}$')  # noqa
+    ax1.grid(True)
     plt.title("Polynomial time law")
-    plt.figure(2)
-    plt.plot(st)
-    plt.plot(std)
-    plt.plot(stdd)
+    ax1.set_xlabel('Time [s]')
+    plt.legend()
+
+    fig2 = plt.figure(2)
+    ax2 = fig2.add_subplot(1, 1, 1)
+    ax2.plot(time_lspb, st, label='$s$')
+    ax2.plot(time_lspb, std, label='$\dot{s}$')  # noqa
+    ax2.plot(time_lspb, stdd, label='$\ddot{s}$')  # noqa
     plt.title("LSPB")
-    plt.grid(True)
+    ax2.grid(True)
+    ax2.set_xlabel('Time [s]')
+    plt.legend()
     plt.show()

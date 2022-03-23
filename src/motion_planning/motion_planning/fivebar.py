@@ -312,6 +312,7 @@ def main():
     b = 0.0
     five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
     # print(five.fkine(np.array([np.pi, 0, 0])))
+    five.make_video = True
     five.work_space()
 
 
