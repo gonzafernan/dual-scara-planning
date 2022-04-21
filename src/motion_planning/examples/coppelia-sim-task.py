@@ -109,14 +109,7 @@ p = np.block([[p1], [p2], [p3], [p4], [p5], [p6], [p7], [p8], [p9], [p10],
               [p11]])
 q = np.block([[q1], [q2], [q3], [q4], [q5], [q6], [q7], [q8], [q9], [q10],
               [q11]])
-# max_v = np.array([2, 2, 2, 2, 2, 2, 2, 2])
-# max_a = np.array([4, 4, 4, 4, 4, 4, 4, 4])
-# q, qd, qdd, p, pd, pdd = path.go_to(goals=pose, max_v=max_v, max_a=max_a)
-# q, qd, qdd, p, pd, pdd = path.line(pose=pose, max_v=max_v, max_a=max_a)
-# q, qd, qdd, p, pd, pdd = path.move_y_from_end(.3)
 
-# q, qd, qdd, p, pd, pdd = path.circle(np.array([0.1, 0.45, 0]),
-#                                      np.array([0., 0.45, 0]), 0.1, 1)
 n = max(q.shape)
 q1_cop = np.zeros(n)
 q2_cop = np.zeros(n)
