@@ -17,6 +17,9 @@ pre-commit install
 cd src/motion_planning
 pip install -e .[dev]
 ```
+## Usage
+See `src/motion_planning/examples`
+
 ## Create package
 ```bash
 cd src/motion_planning
