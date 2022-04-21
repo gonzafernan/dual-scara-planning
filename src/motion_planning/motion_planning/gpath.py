@@ -3,7 +3,7 @@ from fivebar import FiveBar
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas
-from os.path import dirname, abspath
+# from os.path import dirname, abspath
 import os
 
 
@@ -307,7 +307,7 @@ class Path(object):
                 self.tf = tau.sum() + T.sum()
         else:
             dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
-            tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
+            tau, T = self.tl.lspb_param(np.max(abs(dq)), max_v, max_a)
             self.tf = tau + T
 
         n = round(self.tf / self.dt) + 1
@@ -752,9 +752,9 @@ class Path(object):
 if __name__ == '__main__':
     gpath = Path()
     # ARC
-    q, qd, qdd, p, pd, pdd = gpath.arc(np.array([0.35, 0.35, 0]),
-                                       np.array([0.346, 0.331, 0]),
-                                       np.array([0.3, 0.3, 0]), 0.5, 1)
+    # q, qd, qdd, p, pd, pdd = gpath.arc(np.array([0.35, 0.35, 0]),
+    #                                    np.array([0.346, 0.331, 0]),
+    #                                    np.array([0.3, 0.3, 0]), 0.5, 1)
     # CIRCLE
     # st = np.array([0.1, 0.45, 0])
     # c = np.array([0., 0.45, 0])
@@ -782,37 +782,38 @@ if __name__ == '__main__':
     #                                         goal=pose[1, :],
     #                                         mean_v=5)
     # LINE
-    # pose = np.array([[0.35, 0.4, 0], [0.35, 0.35, 0]])
-    # max_v = 0.1
-    # max_a = 0.2
-    # q, qd, qdd, p, pd, pdd = gpath.line(pose=pose,
-    #                                        max_v=max_v,
-    #                                        max_a=max_a,
-    #                                        enable_way_point=True)
+    pose = np.array([[-0.4, 0.4, 0], [0, 0.6, 0], [0.4, 0.4, 0]])
+    max_v = [1.5, 1.5, 1.5]
+    max_a = [0.1, 0.1, 0.1]
+    q, qd, qdd, p, pd, pdd = gpath.line(pose=pose,
+                                        max_v=max_v,
+                                        max_a=max_a,
+                                        enable_way_point=True)
     # JOINT
-    # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=pose[0, :],
-    #                                          goal=pose[1, :],
-    #                                          mean_v=0.5)
+    # q, qd, qdd, p, pd, pdd = gpath.go_to_poly(start=pose[0, :],
+    #                                           goal=pose[1, :],
+    #                                           mean_v=0.5)
     # JOINT
     # q, qd, qdd, p, pd, pdd = gpath.go_to(goals=pose,
     #                                      max_v=max_v,
     #                                      max_a=max_a,
     #                                      way_point=False)
 
-    D = 3  # Diametro mayor
-    d = 1  # diametro menor
-    i = D / d  # relacion de transmision
-    pasos_rev = 200 / (2 * np.pi)
-    factor = i * pasos_rev
-    q = gpath.normalize_trajectory(q, factor)
+    # D = 3  # Diametro mayor
+    # d = 1  # diametro menor
+    # i = D / d  # relacion de transmision
+    # pasos_rev = 200 / (2 * np.pi)
+    # factor = i * pasos_rev
+    # q = gpath.normalize_trajectory(q, factor)
 
-    trj_path = dirname(dirname(abspath(__file__)))
-    trj_path += '/trajectories'
-    name = 'trajectory.csv'
-    gpath.export_trajectory(q, trj_path, name)
+    # trj_path = dirname(dirname(abspath(__file__)))
+    # trj_path += '/trajectories'
+    # name = 'trajectory.csv'
+    # gpath.export_trajectory(q, trj_path, name)
     gpath.plot_joint(q, qdd, qdd)
     gpath.plot_task(p, pd, pdd)
 
     plt.figure(3)
+    plt.grid(True)
     plt.plot(p[:, 0], p[:, 1], 'r')
     plt.show()

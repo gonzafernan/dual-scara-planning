@@ -27,4 +27,4 @@ make http
 ```
 
 ## Usage
-**TODO**
+Please, see examples folder
