@@ -307,7 +307,7 @@ class Path(object):
                 self.tf = tau.sum() + T.sum()
         else:
             dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
-            tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
+            tau, T = self.tl.lspb_param(np.max(abs(dq)), max_v, max_a)
             self.tf = tau + T
 
         n = round(self.tf / self.dt) + 1
@@ -814,5 +814,6 @@ if __name__ == '__main__':
     gpath.plot_task(p, pd, pdd)
 
     plt.figure(3)
+    plt.grid(True)
     plt.plot(p[:, 0], p[:, 1], 'r')
     plt.show()

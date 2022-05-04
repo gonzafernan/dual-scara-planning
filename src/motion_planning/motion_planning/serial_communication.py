@@ -7,12 +7,15 @@ from os.path import dirname, abspath
 # TODO: Definir como es la trama [:p q1 q2] o [:p q1 .. q2 ..]
 # TODO: En base a lo anteriror modificar int2hex
 def encode_trajectory(points):
-    tra_hex = ''
+    trama_hex = []
     for point in points:
-        q1 = f'{format(point[0], "04x")}'
-        q2 = f'{format(point[1], "04x")}'
-        tra_hex += ':P1,' + q1 + '\n' + ':P2,' + q2 + '\n'
-    return tra_hex[:-1]
+        q1 = int(point[0]).to_bytes(length=4, byteorder='big',
+                                    signed=True).hex()
+        q2 = int(point[1]).to_bytes(length=4, byteorder='big',
+                                    signed=True).hex()
+        trama = ':S,' + q1 + ',' + q2 + '\r\n'
+        trama_hex.append(trama.encode('utf-8'))
+    return trama_hex
 
 
 def read_csv(file):

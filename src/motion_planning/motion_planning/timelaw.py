@@ -40,7 +40,7 @@ class TimeLaw(object):
             delta_q = kwargs["delta_q"]
             max_v = kwargs["max_v"]
             max_a = kwargs["max_a"]
-            dt = 0.001
+            dt = 0.01
             if "dt" in kwargs:
                 dt = kwargs["dt"]
 
@@ -48,7 +48,7 @@ class TimeLaw(object):
             delta_q = args[0]
             max_v = args[1]
             max_a = args[2]
-            dt = 0.001
+            dt = 0.01
             if len(args) > 3:
                 dt = args[3]
 
