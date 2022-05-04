@@ -11,6 +11,20 @@ Run the following to install:
 ```python
 pip install motion_planning
 ```
+## Documentation
+### Prerequisites
+```bash
+pip install sphinx
+pip install sphinx-rtd-theme
+pip install myst-parser
+pip install sphinxcontrib-spelling
+```
+### Generation
+```bash
+cd docs
+make clean
+make http
+```
 
 ## Usage
-**TODO**
+Please, see examples folder

@@ -2,6 +2,9 @@ from timelaw import TimeLaw
 from fivebar import FiveBar
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas
+# from os.path import dirname, abspath
+import os
 
 
 class Path(object):
@@ -304,7 +307,7 @@ class Path(object):
                 self.tf = tau.sum() + T.sum()
         else:
             dq = self.robot.ikine(goals[1, :]) - self.robot.ikine(goals[0, :])
-            tau, T = self.tl.lspb_param(np.max(dq), max_v, max_a)
+            tau, T = self.tl.lspb_param(np.max(abs(dq)), max_v, max_a)
             self.tf = tau + T
 
         n = round(self.tf / self.dt) + 1
@@ -632,6 +635,33 @@ class Path(object):
                                   delta_arc_length)
         return self.circle_interpolation(circle, max_vel, max_acc)
 
+    def normalize_trajectory(self, trajectory, factor):
+        return np.array(trajectory * factor, dtype=np.int16)
+
+    def export_trajectory(self, vector, path, name="trajectory.csv"):
+        """ Export pose to a csv
+
+        Args:
+            pose(np.ndarray): nx3 with positions, velocities or acceleration
+
+            path : path to a directory where the file will be saved
+
+            name : name of the file, must contain the extension .csv. \
+            Default trajectory.csv
+        """
+        n = max(vector.shape)
+        time = np.linspace(start=0, stop=self.tf, num=n)
+        data = {
+            'q1': vector[:, 0],
+            'q2': vector[:, 1],
+            'z': vector[:, 1],
+            'timestamp': time
+        }
+        df = pandas.DataFrame(data)
+        os.makedirs(path, exist_ok=True)
+        path += '/' + name
+        df.to_csv(path_or_buf=path, index=False)
+
     def plot_joint(self, q: np.ndarray, qd: np.ndarray,
                    qdd: np.ndarray) -> None:
         """ Plot joints values
@@ -693,8 +723,8 @@ class Path(object):
         fig.suptitle("Task space")
         ax = fig.add_subplot(4, 1, 1, projection='3d')
         ax.plot(p[:, 0], p[:, 1], zs=p[:, 2])
-        ax.plot(p[0, 0], p[0, 1], 'r*')
-        ax.plot(p[-1, 0], p[-1, 1], 'r*')
+        ax.plot(p[0, 0], p[0, 1], 'r*', zs=p[0, 2])
+        ax.plot(p[-1, 0], p[-1, 1], 'r*', zs=p[-1, 2])
         ax = fig.add_subplot(4, 1, 2)
         ax.grid(True)
         ax.plot(t, p[:, 0], label='$x$')  # noqa
@@ -720,42 +750,70 @@ class Path(object):
 
 
 if __name__ == '__main__':
-    path = Path()
+    gpath = Path()
     # ARC
-    # q, qd, qdd, p, pd, pdd = path.arc(np.array([0.0, 0.45, 0]),
-    #                                   np.array([0.1, 0.5, 0]),
-    #                                   np.array([0.2, 0.52, 0]), 0.5, 1)
+    # q, qd, qdd, p, pd, pdd = gpath.arc(np.array([0.35, 0.35, 0]),
+    #                                    np.array([0.346, 0.331, 0]),
+    #                                    np.array([0.3, 0.3, 0]), 0.5, 1)
     # CIRCLE
-    q, qd, qdd, p, pd, pdd = path.circle(np.array([0.1, 0.45, 0]),
-                                         np.array([0., 0.45, 0]), 0.1, 1)
-    # path.robot.endPose = np.ndarray([0.0, 0.3, 0.0])
+    # st = np.array([0.1, 0.45, 0])
+    # c = np.array([0., 0.45, 0])
+    # q, qd, qdd, p, pd, pdd = gpath.circle(start=st,
+    #                                       center=c,
+    #                                       max_vel=.1,
+    #                                       max_acc=.5)
+
     # path.robot.endPose = np.array([0., 0.3, 0.])
     # q, qd, qdd, p, pd, pdd = path.move_from_end(np.array([0.05, -0.05, 0.05]))
-    # st = np.array([-0.5, 0.5, 0.])
-    # gl = np.array([0.0, 0.35, 0.3])
+    # st = np.array([-0.4, 0.4, 0.])
+    # wp = np.array([0.0, 0.55, 0.])
+    # gl = np.array([0.2, 0.4, 0.3])
+    # pose = np.block([[st], [wp], [gl]])
+    # max_v = [0.1, 0.1]
+    # max_a = [0.2, 0.2]
     # pose = np.array([[-0.6, 0.1, 0.], [0.0, 0.6, 0.], [0.6, 0.1, 0.],
     #                  [0.0, 0.5, 0.0], [-0.5, 0.2, 0.0], [0.0, 0.4, 0.0],
     #                  [0.5, 0.2, 0.0], [0., 0.3, 0.0], [-0.4, 0.2, 0.0],
     #                  [0., 0.25, 0.]])
     # max_v = np.array([0.1 for i in range(0, 9)])
     # max_a = np.array([0.1 for i in range(0, 9)])
+    # LINE
     # q, qd, qdd, p, pd, pdd = path.line_poly(start=pose[0, :],
     #                                         goal=pose[1, :],
     #                                         mean_v=5)
-    # q, qd, qdd, p, pd, pdd = path.line(pose=pose,
-    #                                    max_v=max_v,
-    #                                    max_a=max_a,
-    #                                    enable_way_point=False)
-    # q, qd, qdd, p, pd, pdd = path.go_to_poly(start=pose[0, :],
-    #                                          goal=pose[1, :],
-    #                                          mean_v=0.5)
-    # q, qd, qdd, p, pd, pdd = path.go_to(goals=pose,
-    #                                     max_v=max_v,
-    #                                     max_a=max_a,
-    #                                     way_point=False)
+    # LINE
+    pose = np.array([[-0.4, 0.4, 0], [0, 0.6, 0], [0.4, 0.4, 0]])
+    max_v = [1.5, 1.5, 1.5]
+    max_a = [0.1, 0.1, 0.1]
+    q, qd, qdd, p, pd, pdd = gpath.line(pose=pose,
+                                        max_v=max_v,
+                                        max_a=max_a,
+                                        enable_way_point=True)
+    # JOINT
+    # q, qd, qdd, p, pd, pdd = gpath.go_to_poly(start=pose[0, :],
+    #                                           goal=pose[1, :],
+    #                                           mean_v=0.5)
+    # JOINT
+    # q, qd, qdd, p, pd, pdd = gpath.go_to(goals=pose,
+    #                                      max_v=max_v,
+    #                                      max_a=max_a,
+    #                                      way_point=False)
 
-    path.plot_joint(q, qd, qdd)
-    path.plot_task(p, pd, pdd)
+    # D = 3  # Diametro mayor
+    # d = 1  # diametro menor
+    # i = D / d  # relacion de transmision
+    # pasos_rev = 200 / (2 * np.pi)
+    # factor = i * pasos_rev
+    # q = gpath.normalize_trajectory(q, factor)
+
+    # trj_path = dirname(dirname(abspath(__file__)))
+    # trj_path += '/trajectories'
+    # name = 'trajectory.csv'
+    # gpath.export_trajectory(q, trj_path, name)
+    gpath.plot_joint(q, qdd, qdd)
+    gpath.plot_task(p, pd, pdd)
+
     plt.figure(3)
+    plt.grid(True)
     plt.plot(p[:, 0], p[:, 1], 'r')
     plt.show()

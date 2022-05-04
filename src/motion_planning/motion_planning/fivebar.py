@@ -288,16 +288,21 @@ class FiveBar(object):
             os.system("rm *.png")
 
         plt.figure(1)
-        print(count)
-        plt.plot(p[:count, 0], p[:count, 1], 'r .')
+        plt.plot(p[:count, 0], p[:count, 1], 'g .')
         rl = self.arms[0].links.sum()
         plt.plot(rl * np.cos(q1), rl * np.sin(q1), 'k--')
         q3 = np.arange(start=np.deg2rad(-50), stop=np.deg2rad(125), step=0.1)
-        plt.plot(0.38 * np.cos(q3) + 0.25 * np.cos(self.jlimit[0, 0]),
-                 0.38 * np.sin(q3) + 0.25 * np.sin(self.jlimit[0, 0]), 'k--')
+        plt.plot(
+            self.arms[0].links[1] * np.cos(q3) +
+            self.arms[0].links[0] * np.cos(self.jlimit[0, 0]),
+            self.arms[0].links[1] * np.sin(q3) +
+            self.arms[0].links[0] * np.sin(self.jlimit[0, 0]), 'k--')
         q4 = np.arange(start=np.deg2rad(57), stop=np.deg2rad(220), step=0.1)
-        plt.plot(0.38 * np.cos(q4) + 0.25 * np.cos(self.jlimit[0, 1]),
-                 0.38 * np.sin(q4) + 0.25 * np.sin(self.jlimit[0, 1]), 'k--')
+        plt.plot(
+            self.arms[1].links[1] * np.cos(q4) +
+            self.arms[1].links[0] * np.cos(self.jlimit[0, 1]),
+            self.arms[1].links[1] * np.sin(q4) +
+            self.arms[1].links[0] * np.sin(self.jlimit[0, 1]), 'k--')
         plt.grid(True)
         plt.figure(2)
         plt.plot(np.rad2deg(q[:count, 0]), np.rad2deg(q[:count, 1]), 'b .')
@@ -312,6 +317,7 @@ def main():
     b = 0.0
     five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
     # print(five.fkine(np.array([np.pi, 0, 0])))
+    five.make_video = False
     five.work_space()
 
 

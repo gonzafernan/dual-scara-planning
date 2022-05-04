@@ -40,7 +40,7 @@ class TimeLaw(object):
             delta_q = kwargs["delta_q"]
             max_v = kwargs["max_v"]
             max_a = kwargs["max_a"]
-            dt = 0.001
+            dt = 0.01
             if "dt" in kwargs:
                 dt = kwargs["dt"]
 
@@ -48,7 +48,7 @@ class TimeLaw(object):
             delta_q = args[0]
             max_v = args[1]
             max_a = args[2]
-            dt = 0.001
+            dt = 0.01
             if len(args) > 3:
                 dt = args[3]
 
@@ -83,7 +83,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: s(t) value.
+            float s(t) value.
         """
         a = 1 / (T * tau)
         v = 1 / T
@@ -112,7 +112,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: sd(t) value.
+            float sd(t) value.
         """
         a = 1 / (T * tau)
         v = 1 / T
@@ -138,7 +138,7 @@ class TimeLaw(object):
             tau (float): acceleration time
 
         Returns:
-            float: sdd(t) value.
+            float sdd(t) value.
         """
         a = 1 / (T * tau)
         if t <= 0:
@@ -195,14 +195,14 @@ class TimeLaw(object):
         Args:
             qi (float): initial pose
             qf (float): final pose
-            T (float): final time. Default to 1.
+            tf (float): final time. Default to 1.
             vi (float, optional): initial velocity. Default to 0
             vf (float, optional): final velocity. Default to 0
             ai (float, optional): initial acceleration. Default to 0
             af (float, optional): final acceleration. Default to 0
 
         Returns:
-            np.ndarray: coefficients [a0, a1, a2, a3, a4, a5]
+            np.ndarray coefficients [a0, a1, a2, a3, a4, a5]
         """
 
         M = np.array([[1.0, 0, 0, 0, 0, 0], [0, 1.0, 0, 0, 0, 0],
@@ -255,30 +255,40 @@ class TimeLaw(object):
 if __name__ == '__main__':
     tl = TimeLaw()
     a = tl.poly_coeff(qi=0.0, qf=1.0)
-    dt = 0.001
-    n = int(1 / dt)
+    dt = 0.01
+    n = int(1 / dt) + 1
+    time_poly = np.linspace(start=0, stop=1, num=n)
     s = np.zeros(n)
     sd = np.zeros(n)
     sdd = np.zeros(n)
-    for i, t in enumerate(np.arange(start=0, stop=1, step=dt)):
+    for i, t in enumerate(time_poly):
         s[i], sd[i], sdd[i] = tl.poly(t, a)
-    tau, T = tl.lspb_param(delta_q=1, max_v=2.5, max_a=10)
+    tau, T = tl.lspb_param(delta_q=1, max_v=1, max_a=2)
     n = int((tau + T) / dt) + 1
+    time_lspb = np.linspace(start=0, stop=tau + T, num=n)
     st = np.zeros(n)
     std = np.zeros(n)
     stdd = np.zeros(n)
-    for i, t in enumerate(np.arange(start=0, stop=dt + tau + T, step=dt)):
+    for i, t in enumerate(time_lspb):
         st[i], std[i], stdd[i] = tl.lspb(t=t, tau=tau, T=T)
-    plt.figure(1)
-    plt.plot(s)
-    plt.plot(sd)
-    plt.plot(sdd)
-    plt.grid(True)
+
+    fig1 = plt.figure(1)
+    ax1 = fig1.add_subplot(1, 1, 1)
+    ax1.plot(time_poly, s, label='$s$')
+    ax1.plot(time_poly, sd, label='$\dot{s}$')  # noqa
+    ax1.plot(time_poly, sdd, label='$\ddot{s}$')  # noqa
+    ax1.grid(True)
     plt.title("Polynomial time law")
-    plt.figure(2)
-    plt.plot(st)
-    plt.plot(std)
-    plt.plot(stdd)
+    ax1.set_xlabel('Time [s]')
+    plt.legend()
+
+    fig2 = plt.figure(2)
+    ax2 = fig2.add_subplot(1, 1, 1)
+    ax2.plot(time_lspb, st, label='$s$')
+    ax2.plot(time_lspb, std, label='$\dot{s}$')  # noqa
+    ax2.plot(time_lspb, stdd, label='$\ddot{s}$')  # noqa
     plt.title("LSPB")
-    plt.grid(True)
+    ax2.grid(True)
+    ax2.set_xlabel('Time [s]')
+    plt.legend()
     plt.show()
