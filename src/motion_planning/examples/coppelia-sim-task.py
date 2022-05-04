@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 
 l1 = 0.25
 l2 = 0.38
+l22 = 0.3878
 b = 0.0
-five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l2]))
+five = FiveBar(np.array([-b, l1, l2]), np.array([b, l1, l22]))
 path = gp.Path(five)
 
 client = RemoteAPIClient()
@@ -175,6 +176,8 @@ print("The averrage error")
 pose_x_diff = (p[:, 0] - p1_cop)**2
 pose_y_diff = (p[:, 1] - p2_cop)**2
 pose_error = np.sqrt(pose_x_diff + pose_y_diff)
+q1_diff = q[:, 0] - q1_cop
+q2_diff = q[:, 1] - q2_cop
 
 plt.figure(4)
 plt.plot(pose_error)
@@ -184,6 +187,12 @@ plt.show()
 print("Pose mean error:", pose_error.mean())
 print("Pose max error:", max(pose_error))
 print("Pose min error:", min(pose_error))
+print("Q1 mean error:", q1_diff.mean())
+print("Q1 max error:", max(q1_diff))
+print("Q1 min error:", min(q1_diff))
+print("Q2 mean error:", q2_diff.mean())
+print("Q2 max error:", max(q2_diff))
+print("Q2 min error:", min(q2_diff))
 
 # CoppeliaSim kinematic configuration
 # Add IK pluggin
