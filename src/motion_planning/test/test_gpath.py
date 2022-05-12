@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import gpath as gp
+import Path as gp
 
 
 @pytest.fixture

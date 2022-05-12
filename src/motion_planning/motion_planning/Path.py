@@ -1,10 +1,10 @@
-from timelaw import TimeLaw
-from fivebar import FiveBar
+from dataclasses import dataclass
+from TimeLaw import TimeLaw
+from FiveBar import FiveBar
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas
 from os.path import dirname, abspath
-import os
+from utilities import export_trajectory, normalize_trajectory
 
 
 class Path(object):
@@ -15,14 +15,14 @@ class Path(object):
         self.robot = robot
         self.dt = 0.01
         self.tf = 0.
+        self.total_time = 0.
 
+    @dataclass
     class circle_data():
-
-        def __init__(self, center, radius, start, delta) -> None:
-            self.center = center
-            self.radius = radius
-            self.start = start
-            self.delta = delta
+        center: list[float]
+        radius: float
+        start: list[float]
+        delta: list[float]
 
     def move_from_end(
         self,
@@ -132,6 +132,7 @@ class Path(object):
         goal = np.copy(self.robot.endPose)
         goal[1] = self.robot.endPose[1] + y
         pose = np.block([[start], [goal]])
+        self.total_time = 0.
         return self.line(pose, max_v, max_a)
 
     def move_z_from_end(
@@ -310,12 +311,14 @@ class Path(object):
             tau, T = self.tl.lspb_param(np.max(abs(dq)), max_v, max_a)
             self.tf = tau + T
 
+        self.total_time += self.tf
         n = round(self.tf / self.dt) + 1
         p, q, qd, qdd = self.initialize(n)
 
         jstart = self.robot.ikine(goals[0, :])
 
-        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+        for i, t in enumerate(
+                np.linspace(start=0, stop=self.tf, num=n, endpoint=True)):
             if goals.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
                 q[i, :], qd[i, :], qdd[i, :] = self.point_interpolation(
@@ -373,9 +376,11 @@ class Path(object):
             np.max(abs(jgoal - jstart) / mean_v) / self.dt)
         a = self.tl.poly_coeff(0., 1., self.tf)
         n = round(self.tf / self.dt) + 1
+        self.total_time += self.tf
         p, q, qd, qdd = self.initialize(n)
 
-        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+        for i, t in enumerate(
+                np.linspace(start=0, stop=self.tf, num=n, endpoint=True)):
             s, sd, sdd = self.tl.poly(t, a)
 
             q[i, :], qd[i, :], qdd[i, :] = self.point_interpolation(
@@ -417,9 +422,11 @@ class Path(object):
         a = self.tl.poly_coeff(0., 1., self.tf)
 
         n = round(self.tf / self.dt) + 1
+        self.total_time += self.tf
         q, p, pd, pdd = self.initialize(n)
 
-        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+        for i, t in enumerate(
+                np.linspace(start=0, stop=self.tf, num=n, endpoint=True)):
             if i == n:
                 break
             s, sd, sdd = self.tl.poly(t, a)
@@ -489,9 +496,11 @@ class Path(object):
             self.tf = tau + T
 
         n = round(self.tf / self.dt) + 1
+        self.total_time += self.tf
         q, p, pd, pdd = self.initialize(n)
 
-        for i, t in enumerate(np.linspace(start=0, stop=self.tf, num=n)):
+        for i, t in enumerate(
+                np.linspace(start=0, stop=self.tf, num=n, endpoint=True)):
             if pose.shape[0] == 2:
                 s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
                 p[i, :], pd[i, :], pdd[i, :] = self.point_interpolation(
@@ -538,8 +547,9 @@ class Path(object):
         self.tf = tau + T
 
         n = round(self.tf / self.dt) + 1
+        self.total_time += self.tf
         joints, poses, velocities, accelerations = self.initialize(n)
-        time = np.linspace(start=0, stop=self.tf, num=n)
+        time = np.linspace(start=0, stop=self.tf, num=n, endpoint=True)
 
         for i, t in enumerate(time):
             s, sd, sdd = self.tl.lspb(t=t, tau=tau, T=T)
@@ -635,33 +645,6 @@ class Path(object):
                                   delta_arc_length)
         return self.circle_interpolation(circle, max_vel, max_acc)
 
-    def normalize_trajectory(self, trajectory, factor):
-        return np.array(trajectory * factor, dtype=np.int16)
-
-    def export_trajectory(self, vector, path, name="trajectory.csv"):
-        """ Export pose to a csv
-
-        Args:
-            pose(np.ndarray): nx3 with positions, velocities or acceleration
-
-            path : path to a directory where the file will be saved
-
-            name : name of the file, must contain the extension .csv. \
-            Default trajectory.csv
-        """
-        n = max(vector.shape)
-        time = np.linspace(start=0, stop=self.tf, num=n)
-        data = {
-            'q1': vector[:, 0],
-            'q2': vector[:, 1],
-            'z': vector[:, 1],
-            'timestamp': time
-        }
-        df = pandas.DataFrame(data)
-        os.makedirs(path, exist_ok=True)
-        path += '/' + name
-        df.to_csv(path_or_buf=path, index=False)
-
     def plot_joint(self, q: np.ndarray, qd: np.ndarray,
                    qdd: np.ndarray) -> None:
         """ Plot joints values
@@ -674,9 +657,12 @@ class Path(object):
         Returns:
 
         Note:
-            tf has to be a sum of all trajectories times
+            total_time must be the sum of all trajectories times
         """
-        t = np.linspace(start=0, stop=self.tf, num=max(q.shape))
+        t = np.linspace(start=0,
+                        stop=self.total_time,
+                        num=max(q.shape),
+                        endpoint=True)
 
         # fig = plt.figure(figsize=plt.figaspect(2.))
         fig = plt.figure()
@@ -715,9 +701,12 @@ class Path(object):
         Returns:
 
         Note:
-            tf has to be a sum of all trajectories times
+            total_time must be the sum of all trajectories times
         """
-        t = np.linspace(start=0, stop=self.tf, num=max(p.shape))
+        t = np.linspace(start=0,
+                        stop=self.total_time,
+                        num=max(p.shape),
+                        endpoint=True)
 
         fig = plt.figure(figsize=plt.figaspect(2.))
         fig.suptitle("Task space")
@@ -804,12 +793,12 @@ if __name__ == '__main__':
     i = D / d  # relacion de transmision
     pasos_rev = 200 / (2 * np.pi)
     factor = i * pasos_rev
-    q = gpath.normalize_trajectory(q, factor)
+    q = normalize_trajectory(q, factor)
 
     trj_path = dirname(dirname(abspath(__file__)))
     trj_path += '/trajectories'
     name = 'trajectory.csv'
-    gpath.export_trajectory(q, trj_path, name)
+    export_trajectory(q, trj_path, gpath.total_time, name)
     gpath.plot_joint(q, qdd, qdd)
     gpath.plot_task(p, pd, pdd)
 

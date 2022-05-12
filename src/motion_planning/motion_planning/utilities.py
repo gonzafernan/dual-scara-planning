@@ -1,7 +1,42 @@
 import time
 import serial
 import pandas as pd
+import numpy as np
 from os.path import dirname, abspath
+from os import makedirs
+
+
+def normalize_trajectory(trajectory, factor):
+    return np.array(trajectory * factor, dtype=np.int16)
+
+
+def export_trajectory(vector, path, final_time, name="trajectory.csv"):
+    """ Export pose to a csv
+
+    Args:
+        pose(np.ndarray): nx3 with positions, velocities or acceleration
+
+        path : path to a directory where the file will be saved
+
+        name : name of the file, must contain the extension .csv. \
+        Default trajectory.csv
+    """
+    n = max(vector.shape)
+    time, dt = np.linspace(start=0, stop=final_time, num=n, retstep=True)
+    if np.round(dt, decimals=2) != 0.01:
+        print("Warning: dt time rounded is not 0.01")
+    time = np.round(time, decimals=2)
+
+    data = {
+        'q1': vector[:, 0],
+        'q2': vector[:, 1],
+        'z': vector[:, 1],
+        'timestamp': time
+    }
+    df = pd.DataFrame(data)
+    makedirs(path, exist_ok=True)
+    path += '/' + name
+    df.to_csv(path_or_buf=path, index=False)
 
 
 # TODO: Definir como es la trama [:p q1 q2] o [:p q1 .. q2 ..]

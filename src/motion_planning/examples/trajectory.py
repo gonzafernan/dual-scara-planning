@@ -1,10 +1,11 @@
-import gpath
+import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from os.path import dirname, abspath
+from utilities import export_trajectory, normalize_trajectory
 
 # Create a Path object
-path = gpath.Path()
+path = Path.Path()
 
 # Define some interesting points
 st = np.array([-0.4, 0.4, 0.])
@@ -19,6 +20,8 @@ q_ar, qd_ar, qdd_ar, p_ar, pd_ar, pdd_ar = path.arc(np.array([0.35, 0.35, 0]),
                                                     np.array([0.346, 0.331, 0]),
                                                     np.array([0.3, 0.3, 0]),
                                                     0.5, 1)
+total_time = path.total_time
+
 # CIRCLE
 st = np.array([0.1, 0.45, 0])
 c = np.array([0., 0.45, 0])
@@ -30,12 +33,16 @@ q_cir, qd_cir, qdd_cir, p_cir, pd_cir, pdd_cir = path.circle(start=st,
 # LINE
 q_lin1, qd_lin1, qdd_lin1, p_lin1, pd_lin1, pdd_lin1 = path.line_poly(
     start=pose[0, :], goal=pose[1, :], mean_v=5)
+
 # LINE
+path.total_time = 0  # Reset time
 pose = np.array([[0.35, 0.4, 0], [0.35, 0.35, 0]])
 max_v = 0.1
 max_a = 0.2
 q_lin2, qd_lin2, qdd_lin2, p_lin2, pd_lin2, pdd_lin2 = path.line(
     pose=pose, max_v=max_v, max_a=max_a, enable_way_point=True)
+total_time += path.total_time
+
 # JOINT
 q_j, qd_j, qdd_j, p_j, pd_j, pdd_j = path.go_to_poly(start=pose[0, :],
                                                      goal=pose[1, :],
@@ -77,10 +84,10 @@ d = 1  # diametro menor
 i = D / d  # relacion de transmision
 pasos_rev = 200 / (2 * np.pi)
 factor = i * pasos_rev
-q = gpath.normalize_trajectory(q, factor)
+q = normalize_trajectory(q, factor)
 # Save trajectory for send to robot
 
 trj_path = dirname(dirname(abspath(__file__)))
 trj_path += '/trajectories'
 file_name = 'trajectory.csv'
-path.export_trajectory(q, trj_path, file_name)
+export_trajectory(q, trj_path, total_time, file_name)

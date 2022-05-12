@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import timelaw as tl
+import TimeLaw as tl
 
 
 @pytest.fixture
@@ -9,7 +9,7 @@ def data():
     # max_v = 1
     # max_a = 1.5
     # dt = 0.001
-    data = {"delta_q": 5, "max_v": 1, "max_a": 1.5, "dt": 0.001}
+    data = {"delta_q": 5, "max_v": 1, "max_a": 1.5, "dt": 0.01}
     return data
 
 
@@ -35,7 +35,7 @@ def test_s(data):
     law = tl.TimeLaw()
     s = law.lspb_s(t=tau_, tau=tau_, T=T_)
     s_ = (data["max_a"] * tau_**2 * 0.5) / data["delta_q"]
-    assert np.round(s, decimals=4) == np.round(s_, decimals=4)
+    assert np.round(s, decimals=3) == np.round(s_, decimals=3)
     s = law.lspb_s(t=T_ + tau_, tau=tau_, T=T_)
     s_ = 1.0
     assert s == s_
