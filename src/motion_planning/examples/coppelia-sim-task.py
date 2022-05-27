@@ -1,5 +1,5 @@
-from fivebar import FiveBar
-import gpath as gp
+from FiveBar import FiveBar
+import Path as gp
 import numpy as np
 import math
 from zmqRemoteApi import RemoteAPIClient

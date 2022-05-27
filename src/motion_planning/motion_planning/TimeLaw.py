@@ -20,7 +20,7 @@ class TimeLaw(object):
             max_v (float): maximal velocity.
             max_a (float): maximal acceleration.
             dt (float, optional): step time for round values. \
-            Defaults to 0.001
+            Defaults to 0.01
 
         Returns:
             A tuple containing, respectively

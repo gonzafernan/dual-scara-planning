@@ -8,7 +8,7 @@ setup(name='motion_planning',
       description='Five bar robot motion planning package.',
       long_description=long_description,
       long_description_content_type="text/markdown",
-      py_modules=["fivebar", "gpath", "timelaw", "serial_communication"],
+      py_modules=["FiveBar", "Path", "TimeLaw", "utilities"],
       package_dir={'': 'motion_planning'},
       install_requires=["numpy >= 1.2", "matplotlib >= 3.5", "pyserial >= 3.5"],
       extras_require={
