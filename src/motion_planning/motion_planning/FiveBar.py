@@ -54,8 +54,8 @@ class FiveBar(object):
 
     def __init__(
         self,
-        d1: np.ndarray = np.array([0., .25, .38]),
-        d2: np.ndarray = np.array([0., .25, .38])
+        d1: np.ndarray = np.array([0., .25, .445]),
+        d2: np.ndarray = np.array([0., .25, .445])
     ) -> None:
         """ __init_ method:
 

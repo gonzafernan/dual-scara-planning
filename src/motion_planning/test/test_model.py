@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-import fivebar as fb
+import FiveBar as fb
 
 
 @pytest.fixture
