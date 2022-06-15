@@ -54,8 +54,8 @@ class FiveBar(object):
 
     def __init__(
         self,
-        d1: np.ndarray = np.array([0., .25, .445]),
-        d2: np.ndarray = np.array([0., .25, .445])
+        d1: np.ndarray = np.array([0., .25, .45]),
+        d2: np.ndarray = np.array([0., .25, .45])
     ) -> None:
         """ __init_ method:
 
@@ -139,7 +139,7 @@ class FiveBar(object):
         else:
             p = pose[:2]
             joints[-1] = pose[-1].item()
-
+        # p = p + np.array([-0.025, -0.0175])
         for i, arm in enumerate(self.arms):
             phi = np.linalg.norm(p - arm.base)
             if phi <= arm.links.sum(
@@ -205,6 +205,7 @@ class FiveBar(object):
             else:
                 p = rOA1 + f - self.assembly * h
 
+            # p = p + np.array([0.025, 0.0175])
             p = np.append(p, q[-1])
             # Update robot
             self.arms[0].rOA = rOA1

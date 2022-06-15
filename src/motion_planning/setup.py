@@ -1,6 +1,10 @@
+from os import path
 from setuptools import setup
 
-with open("README.md", "r") as fh:
+current_path = path.dirname(path.abspath(__file__))
+readme_path = path.join(current_path, "README.md")
+
+with open(readme_path, "r") as fh:
     long_description = fh.read()
 
 setup(name='motion_planning',
@@ -23,5 +27,5 @@ setup(name='motion_planning',
           "Operating System :: OS Independent"
       ],
       url="https://github.com/gonzafernan/five-bar-robot",
-      author="Jeremías Pino Demichelis",
+      author="Gino Avanzini, Gonzalo Fernandez y Jeremías Pino Demichelis",
       author_email="jerepinos@gmail.com")

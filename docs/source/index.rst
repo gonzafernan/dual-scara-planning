@@ -6,11 +6,14 @@
 Welcome to Five Bar Robot's documentation!
 ==========================================
 
+Five-bar planar parallel robots for pick and place operations.
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   intro.md
+   README.md
+   usage.rst
    modules.rst
 
 

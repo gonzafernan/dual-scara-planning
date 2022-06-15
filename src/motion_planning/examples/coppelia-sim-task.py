@@ -31,8 +31,6 @@ sim.setInt32Param(sim.intparam_idle_fps, 0)
 sim.startSimulation()
 j1 = sim.getJointPosition(joint11) + math.pi
 j2 = sim.getJointPosition(joint21)
-# end_pose = sim.getObjectPosition(end, base)
-# start = path.robot.ikine(np.array([end_pose[0], end_pose[1], 0]))
 # LINE 1
 start = path.robot.fkine(np.array([j1, j2, 0]))
 point1 = np.array([0., 0.3, 0.])
@@ -103,7 +101,7 @@ q10, qd10, qdd10, p10, pd10, pdd10 = path.arc(start=point12,
                                               max_vel=0.5,
                                               max_acc=1)
 
-# line 6
+# LINE 6
 line6 = np.block([[point14], [point1]])
 q11, qd11, qdd11, p11, pd11, pdd11 = path.line(pose=line6, max_v=0.1, max_a=0.2)
 p = np.block([[p1], [p2], [p3], [p4], [p5], [p6], [p7], [p8], [p9], [p10],

@@ -11,19 +11,22 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-from platform import release
 import sys
-import sphinx_rtd_theme # noqa
+import sphinx_rtd_theme  # noqa
+from os.path import dirname, abspath, join
 
-sys.path.insert(0, os.path.abspath('../../src/motion_planning'))
+root_path = dirname(dirname(dirname(abspath(__file__))))
+pkg_path = join("src", "motion_planning")
+motion_planning_path = join(root_path, pkg_path)
+sys.path.insert(0, os.path.abspath(motion_planning_path))
 
 # -- Project information -----------------------------------------------------
 
 project = 'Five Bar Robot'
-copyright = '2022, Gonzalo Fernandez and Jeremías Pino'
-author = 'Gonzalo Fernandez and Jeremías Pino'
+copyright = '2022'
+author = 'Gino Avanzini, Gonzalo Fernandez and Jeremías Pino'
 
-release = "0.0.x" # noqa
+release = "0.0.x"  # noqa
 
 # -- General configuration ---------------------------------------------------
 

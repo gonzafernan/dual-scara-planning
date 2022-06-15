@@ -30,7 +30,7 @@ def export_trajectory(vector, path, final_time, name="trajectory.csv"):
     data = {
         'q1': vector[:, 0],
         'q2': vector[:, 1],
-        'z': vector[:, 1],
+        'z': vector[:, 2],
         'timestamp': time
     }
     df = pd.DataFrame(data)
